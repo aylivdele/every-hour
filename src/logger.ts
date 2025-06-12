@@ -5,7 +5,11 @@ import { config } from './configuration';
 const pathToLogs = config.logDir ?? path.resolve( __dirname, '../logs');
 
 const myFormat = winston.format.printf((args) => {
-  return `${args.timestamp} ${args.level}: ${args.message}`;
+  const text = `${args.timestamp} ${args.level}: ${args.message}`;
+  if (args.stack) {
+    return `${ text }\n${ args.stack }`
+  }
+  return text;
 });
 
 export const logger = winston.createLogger({
@@ -13,8 +17,10 @@ export const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.splat(),   
+    winston.format.errors({ stack: true }),
     myFormat
   ),
+  handleExceptions: true,
   transports: [
     new winston.transports.File({ filename: path.resolve(pathToLogs, 'error.log'), level: 'error' }),
     new winston.transports.File({ filename: path.resolve(pathToLogs, 'combined.log') }),

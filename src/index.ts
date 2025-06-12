@@ -1,9 +1,11 @@
-import { configure, createClient } from 'tdl';
+import { ClientOptions, configure, createClient } from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
 import { config } from './configuration';
 import { handleAuth } from './handlers/auth';
 import { Update } from 'tdlib-types';
 import { logger } from './logger';
+import { handleFolders } from './handlers/folders';
+import { handleNewChat } from './handlers/newChat';
 
 
 
@@ -11,17 +13,35 @@ configure({
   tdjson: getTdjson(),
 });
 
-export const client = createClient({
+const options: ClientOptions = {
   apiId: config.tgApiId,
   apiHash: config.tgApiHash,
-  databaseDirectory: config.tdDatabaseDir,
-  filesDirectory: config.tdFilesDir,
-});
+};
+
+if (config.tdDatabaseDir) {
+  options.databaseDirectory = config.tdDatabaseDir;
+}
+if (config.tdFilesDir) {
+  options.filesDirectory = config.tdFilesDir;
+}
+
+export const client = createClient(options);
 
 client.on('update', (update: Update) => {
-  if (update._ === 'updateAuthorizationState') {
-    handleAuth(update);
+  logger.info('Update: %s', update._);
+
+  switch (update._) {
+    case 'updateAuthorizationState':
+      return handleAuth(update);
+    case 'updateChatFolders':
+      return handleFolders(update);
+    case 'updateNewChat':
+      return handleNewChat(update);
   }
+  //TODO: updateChatAddedToList 
+  // updateChatRemovedFromList 
+  // updateChatPosition
+  // updateUnreadMessageCount
 });
 
 client.on('error', (error) => {
