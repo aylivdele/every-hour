@@ -1,0 +1,23 @@
+{
+  "name": "every-hour",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx --watch -r ts-node src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^24.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "prebuilt-tdlib": "^0.1008050.0",
+    "tdl": "^8.0.2",
+    "winston": "^3.17.0"
+  }
+}
