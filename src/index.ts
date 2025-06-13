@@ -6,6 +6,10 @@ import { Update } from 'tdlib-types';
 import { logger } from './logger';
 import { handleFolders } from './handlers/folders';
 import { handleNewChat } from './handlers/newChat';
+import { handleChatPosition } from './handlers/chatPostition';
+import { handleChatAddedToList } from './handlers/chatAddedToList';
+import { handleChatRemovedFromList } from './handlers/chatRemovedFromList';
+import { handleConnectionState } from './handlers/connectionState';
 
 
 
@@ -27,21 +31,45 @@ if (config.tdFilesDir) {
 
 export const client = createClient(options);
 
-client.on('update', (update: Update) => {
+let handlerQueue: Promise<any> = Promise.resolve();
+
+const addHandlerToQueue = <T extends Update> (handler: (update: T) => Promise<any>, update: T) => {
+  handlerQueue = handlerQueue.finally(async () => {
+    logger.info('handler %s start', update._);
+    try {
+      return await handler(update);
+    } finally {
+      return logger.info('handler %s end', update._);
+    }
+  })
+}
+
+client.on('update', async (update: Update) => {
   logger.info('Update: %s', update._);
 
   switch (update._) {
     case 'updateAuthorizationState':
-      return handleAuth(update);
+      addHandlerToQueue(handleAuth, update);
+      return;
     case 'updateChatFolders':
-      return handleFolders(update);
+      addHandlerToQueue(handleFolders, update);
+      return;
     case 'updateNewChat':
-      return handleNewChat(update);
+      addHandlerToQueue(handleNewChat, update);
+      return;
+    case 'updateChatPosition':
+      addHandlerToQueue(handleChatPosition, update);
+      return;
+    case 'updateChatAddedToList':
+      addHandlerToQueue(handleChatAddedToList, update);
+      return;
+    case 'updateChatRemovedFromList':
+      addHandlerToQueue(handleChatRemovedFromList, update);
+      return;
+    case 'updateConnectionState':
+      addHandlerToQueue(handleConnectionState, update);
+      return;
   }
-  //TODO: updateChatAddedToList 
-  // updateChatRemovedFromList 
-  // updateChatPosition
-  // updateUnreadMessageCount
 });
 
 client.on('error', (error) => {
