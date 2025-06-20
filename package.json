@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "dotenv": "^16.5.0",
+    "openai": "^5.5.1",
     "prebuilt-tdlib": "^0.1008050.0",
     "tdl": "^8.0.2",
     "winston": "^3.17.0"
