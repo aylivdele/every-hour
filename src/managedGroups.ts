@@ -23,7 +23,7 @@ interface GroupWithNews {
 
 export const managedGroups: Array<Group> = [];
 
-const interval = setInterval(() => {
+const postSummary = () => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
   managedGroups.forEach(async group => {
     if (!group.targetChatId) {
@@ -61,7 +61,13 @@ const interval = setInterval(() => {
     }
     
   });
-}, config.postInterval);
+};
+
+const interval = setInterval(postSummary, config.postInterval);
+if (config.postInterval > (1000 * 60 * 10)) {
+  setTimeout(postSummary, 60 * 1000);
+}
+
 
 export async function gatherUnreadMessages(folderId: number, limitPerChat?: number): Promise<Array<GroupWithNews>> {
   const group = managedGroups.find(g => g.folderId === folderId);

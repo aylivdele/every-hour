@@ -35,7 +35,7 @@ let handlerQueue: Promise<any> = Promise.resolve();
 
 const addHandlerToQueue = <T extends Update> (handler: (update: T) => Promise<any>, update: T) => {
   handlerQueue = handlerQueue.finally(async () => {
-    logger.info('handler %s start', update._);
+    logger.info('handler %s start: %s', update._, JSON.stringify(update));
     try {
       return await handler(update);
     } finally {
@@ -45,8 +45,6 @@ const addHandlerToQueue = <T extends Update> (handler: (update: T) => Promise<an
 }
 
 client.on('update', async (update: Update) => {
-  logger.info('Update: %s', update._);
-
   switch (update._) {
     case 'updateAuthorizationState':
       addHandlerToQueue(handleAuth, update);
