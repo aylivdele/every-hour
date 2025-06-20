@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "npx --watch -r ts-node src/index.ts"
+    "dev": "npx --watch -r ts-node src/index.ts",
+    "build": "npx tsc",
+    "run": "node ./dist/index.js"
   },
   "keywords": [],
   "author": "",
