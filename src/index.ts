@@ -52,18 +52,18 @@ client.on('update', async (update: Update) => {
     case 'updateChatFolders':
       addHandlerToQueue(handleFolders, update);
       return;
-    case 'updateNewChat':
-      addHandlerToQueue(handleNewChat, update);
-      return;
-    case 'updateChatPosition':
-      addHandlerToQueue(handleChatPosition, update);
-      return;
-    case 'updateChatAddedToList':
-      addHandlerToQueue(handleChatAddedToList, update);
-      return;
-    case 'updateChatRemovedFromList':
-      addHandlerToQueue(handleChatRemovedFromList, update);
-      return;
+    // case 'updateNewChat':
+    //   addHandlerToQueue(handleNewChat, update);
+    //   return;
+    // case 'updateChatPosition':
+    //   addHandlerToQueue(handleChatPosition, update);
+    //   return;
+    // case 'updateChatAddedToList':
+    //   addHandlerToQueue(handleChatAddedToList, update);
+    //   return;
+    // case 'updateChatRemovedFromList':
+    //   addHandlerToQueue(handleChatRemovedFromList, update);
+    //   return;
     case 'updateConnectionState':
       addHandlerToQueue(handleConnectionState, update);
       return;

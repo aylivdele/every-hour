@@ -7,7 +7,7 @@ export async function handleChatRemovedFromList(update: updateChatRemovedFromLis
   if (update.chat_list._ === 'chatListFolder') {
     const folderId = update.chat_list.chat_folder_id;
     managedGroups.forEach(group => {
-      if (group.folderId === folderId) {
+      if (group.id === folderId) {
          if (group.targetChatId === chatId) {
           group.targetChatId = undefined;
          } else {

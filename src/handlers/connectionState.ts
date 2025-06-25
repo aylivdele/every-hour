@@ -10,7 +10,7 @@ export function handleConnectionState(update: updateConnectionState) {
         _: 'getChats',
         chat_list: {
           _: 'chatListFolder',
-          chat_folder_id: group.folderId,
+          chat_folder_id: group.id,
         },
         limit: 100,
       }).then(chatIds => Promise.all([...chatIds.chat_ids.map(chat_id => {

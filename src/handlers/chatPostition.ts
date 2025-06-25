@@ -7,7 +7,7 @@ export async function handleChatPosition(update: updateChatPosition) {
   if (update.position.list._ === 'chatListFolder') {
     const folderId = update.position.list.chat_folder_id;
     managedGroups.forEach(group => {
-      if (group.folderId === folderId) {
+      if (group.id === folderId) {
         if (group.targetChatId === chatId) {
           if (!update.position.is_pinned) {
             const chat = group.targetChatId;

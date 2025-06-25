@@ -7,7 +7,7 @@ export async function handleChatAddedToList(update: updateChatAddedToList) {
   if (update.chat_list._ === 'chatListFolder') {
     const folderId = update.chat_list.chat_folder_id;
     managedGroups.forEach(group => {
-      if (group.folderId === folderId && group.targetChatId !== chatId && !group.sourceChatIds.some(sci => sci === chatId)) {
+      if (group.id === folderId && group.targetChatId !== chatId && !group.sourceChatIds.some(sci => sci === chatId)) {
         group.sourceChatIds.push(chatId);
       }
     });
