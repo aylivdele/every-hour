@@ -27,11 +27,14 @@ const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, tim
 
 const postSummary = async () => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
+  const toDate = Math.floor((Date.now() - 3600000) / 1000);
+  const currentDate = new Date(Date.now());
+
   const messages = await Promise.all(managedGroups.flatMap(async group => {
     if (!group.title.startsWith(config.parseFolderPrefix)) {
       return [];
     }
-    const unreadMessages = await gatherUnreadMessages(group.id, config.postCount);
+    const unreadMessages = await gatherUnreadMessages(toDate, group.id, config.postCount);
     if (process.env.TEST) {
       fs.writeFileSync(path.resolve(process.cwd(), `posts_${group.id}.json`, ), JSON.stringify(unreadMessages));
     }
@@ -84,9 +87,12 @@ const postSummary = async () => {
     }
     const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
 
-    let text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}.`, '🔹 Коротко:');
+    const toDateObject = new Date(toDate);
+
+    let text = `🕐 Главное за ${toDateObject.getDate().toString().padStart(2, '0')}-${(toDateObject.getMonth() + 1).toString().padStart(2, '0')} ${toDateObject.getHours().toString().padStart(2, '0')}:${toDateObject.getMinutes().toString().padStart(2, '0')} - ${currentDate.getDate().toString().padStart(2, '0')}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')} ${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`;
+    text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}`, `${text}\n\n🔹 Коротко:`);
     text += '\n\n📌 Подробности:';
-    text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}.`, text);
+    text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}`, text);
     await client.invoke({
       _: 'sendMessage',
       chat_id: targetChatId,
@@ -198,8 +204,7 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
   return posts;
 }
 
-export async function gatherUnreadMessages(folderId: number, limitPerChat?: number): Promise<Post[]> {
-  const toDate = Math.floor((Date.now() - 3600000) / 1000);
+export async function gatherUnreadMessages(toDate: number, folderId: number, limitPerChat?: number): Promise<Post[]> {
 
   const chats = await client.invoke({
     _: 'getChats',
