@@ -84,7 +84,9 @@ const postSummary = async () => {
     }
     const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
 
-    const text = summaryArr.map((summary, index) => `${index + 1}. ${summary.emoji} ${summary.summary_short}\n${summary.summary_detailed}`).join('\n');
+    let text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}.`, '🔹 Коротко:');
+    text += '\n\n📌 Подробности:';
+    text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}.`, text);
     await client.invoke({
       _: 'sendMessage',
       chat_id: targetChatId,
@@ -152,15 +154,15 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
     for (const msg of messages) {
       if (!!msg?.id) {
         if (msg.date > toDate) {
-          if (msg.date < (lastMessage?.date ?? Number.MAX_SAFE_INTEGER)) {
-            lastMessage = msg;
-          }
           if (!arr.some(am => am.id === msg.id)) {
             arr.push(msg);   
           }
         } else {
           reachedDate = true;
         }
+      }
+      if (!lastMessage || msg!.date < (lastMessage?.date || Number.MAX_SAFE_INTEGER) || msg!.id < lastMessage?.id) {
+        lastMessage = msg!;
       }
     }
     if (reachedDate) {
