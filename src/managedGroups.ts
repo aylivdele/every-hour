@@ -98,9 +98,9 @@ const postSummary = async () => {
 };
 
 const interval = setInterval(postSummary, config.postInterval);
-if (config.postInterval > (1000 * 60 * 10)) {
-  setTimeout(postSummary, 60 * 1000);
-}
+// if (config.postInterval > (1000 * 60 * 10)) {
+//   setTimeout(postSummary, 60 * 1000);
+// }
 
 // setTimeout(() => {
 //   managedGroups.forEach(folder => {
