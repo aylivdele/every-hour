@@ -22,8 +22,8 @@ export const logger = winston.createLogger({
   ),
   handleExceptions: true,
   transports: [
-    new winston.transports.File({ filename: path.resolve(pathToLogs, 'error.log'), level: 'error' }),
-    new winston.transports.File({ filename: path.resolve(pathToLogs, 'combined.log') }),
+    new winston.transports.File({ filename: path.resolve(pathToLogs, 'error.log'), level: 'error', maxFiles: 3, maxsize: 20 * 1024 * 1024, zippedArchive: true }),
+    new winston.transports.File({ filename: path.resolve(pathToLogs, 'combined.log'), maxFiles: 3, maxsize: 20 * 1024 * 1024, zippedArchive: true }),
   ],
 });
 
