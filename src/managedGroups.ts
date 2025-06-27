@@ -4,7 +4,7 @@ import { config } from "./configuration";
 import { askAI } from "./ai";
 import fs from 'fs';
 import path from "path";
-import { message } from "tdlib-types";
+import { chat, message } from "tdlib-types";
 import { clusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 
 export interface Group {
@@ -63,13 +63,15 @@ const postSummary = async () => {
         logger.info('Retrying summary request in 1 minute');
         await timeout(60 * 1000);
       }
-      await askAI(summaryPrompt, JSON.stringify(posts))
-        .then(answer => ({summaryRaw: answer, success: true}))
+      const {newSuccess, newSummaryRaw} = await askAI(summaryPrompt, JSON.stringify(posts))
+        .then(answer => ({newSummaryRaw: answer, newSuccess: true}))
         .catch(async reason => {
           logger.error('Error on summary ai request', reason);
-          retries++;
-          return ({ summaryRaw: null, success: false });
-        });
+          return ({ newSummaryRaw: null, newSuccess: false });
+        })
+        .finally(() => retries++);
+      success = newSuccess;
+      summaryRaw = newSummaryRaw;
     }
 
     if (!summaryRaw) {
@@ -120,39 +122,49 @@ if (config.postInterval > (1000 * 60 * 10)) {
 // }, 60 * 1000);
 
 async function loadChatHistory(chatId: number, toDate: number, limitPerChat: number = 10) {
-  await client.invoke({
-    _: 'openChat',
-    chat_id: chatId
-  });
+  // await client.invoke({
+  //   _: 'openChat',
+  //   chat_id: chatId
+  // });
 
   const arr: Array<message> = [];
   let offset = 0;
   let reachedDate = false;
+  let lastMessage: message | undefined;
 
   while (arr.length < limitPerChat) {
+    logger.info('Loading messages for chat "%d" from message "%d"', chatId, lastMessage?.id ?? 0);
     const messages = await client.invoke({
       _: 'getChatHistory',
       chat_id: chatId,
-      limit: limitPerChat,
-      offset
+      from_message_id: lastMessage?.id ?? 0,
+      limit: limitPerChat - arr.length,
+      offset: 0
     }).then(messages => {
-      offset += messages.messages.length;
+      logger.info('Loaded %d/%d messages: %s', messages.messages.length, messages.total_count, JSON.stringify(messages.messages));
       return messages.messages.filter(msg => !!msg?.id);
     });
 
     for (const msg of messages) {
       if (!!msg?.id) {
         if (msg.date > toDate) {
-          arr.push(msg);   
+          if (msg.date < (lastMessage?.date ?? Number.MAX_SAFE_INTEGER)) {
+            lastMessage = msg;
+          }
+          if (!arr.some(am => am.id === msg.id)) {
+            arr.push(msg);   
+          }
         } else {
           reachedDate = true;
         }
       }
     }
     if (reachedDate) {
+      logger.info('Reached date, saved %d/%d messages', arr.length, messages.length);
       break;
     }
   }
+  logger.info('Exit cycle with %d messages', arr.length);
 
   const posts: Array<Post> = arr.map((msg) => {
     if (msg?.content._ === 'messageText') {
@@ -181,7 +193,7 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
 }
 
 export async function gatherUnreadMessages(folderId: number, limitPerChat?: number): Promise<Post[]> {
-  const toDate = Date.now() - 3600000;
+  const toDate = Math.floor((Date.now() - 3600000) / 1000);
 
   const chats = await client.invoke({
     _: 'getChats',

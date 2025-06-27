@@ -136,3 +136,5 @@ dist
 .pnp.*
 _td_database
 _td_files
+
+posts_*.json

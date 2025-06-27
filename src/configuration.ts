@@ -16,7 +16,7 @@ interface Config {
   tgPassword?: string;
   networkToken: string;
   postInterval: number;
-  postCount: number;
+  postCount?: number;
   postDebug: boolean;
   parseFolderPrefix: string;
   targetChats: TargetChats;
@@ -45,7 +45,7 @@ export function reloadConfig() {
   const postDebug = process.env.POST_DEBUG;
 
   let postIntervalNumber: number = 3600000;
-  let postCountNumber: number = 3;
+  let postCountNumber: number | undefined = undefined;
   let postDebugBoolean: boolean = false;
   const targetChatsObject: TargetChats = {};
 
