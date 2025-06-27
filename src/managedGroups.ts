@@ -87,9 +87,9 @@ const postSummary = async () => {
     }
     const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
 
-    const toDateObject = new Date(toDate);
+    const toDateObject = new Date(toDate * 1000);
 
-    let text = `🕐 Главное за ${toDateObject.getDate().toString().padStart(2, '0')}-${(toDateObject.getMonth() + 1).toString().padStart(2, '0')} ${toDateObject.getHours().toString().padStart(2, '0')}:${toDateObject.getMinutes().toString().padStart(2, '0')} - ${currentDate.getDate().toString().padStart(2, '0')}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')} ${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`;
+    let text = `🕐 Главное за ${toDateObject.getDate().toString().padStart(2, '0')}.${toDateObject.toLocaleString('ru', {month: 'short'})} ${toDateObject.getHours().toString().padStart(2, '0')}:${toDateObject.getMinutes().toString().padStart(2, '0')} - ${currentDate.getDate().toString().padStart(2, '0')}-${currentDate.toLocaleString('ru', {month: 'short'})} ${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`;
     text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}`, `${text}\n\n🔹 Коротко:`);
     text += '\n\n📌 Подробности:';
     text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}`, text);
