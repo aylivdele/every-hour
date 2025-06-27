@@ -73,23 +73,3 @@ client.on('update', async (update: Update) => {
 client.on('error', (error) => {
   logger.error('Error:', error);
 });
-
-
-async function sendMessage(chatId: number, text: string) {
-  try {
-    const result = await client.invoke({
-      _: 'sendMessage',
-      chat_id: chatId,
-      input_message_content: {
-        _: 'inputMessageText',
-        text: {
-          _: 'formattedText',
-          text: text,
-        },
-      },
-    });
-    console.log('Message sent successfully:', result);
-  } catch (error) {
-    console.error('Error sending message:', error);
-  }
-}

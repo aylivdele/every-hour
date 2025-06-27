@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 import path from "path";
 
+interface TargetChats {
+  [key: string]: number;
+}
+
 interface Config {
   tdDatabaseDir?: string;
   tdFilesDir?: string;
@@ -14,6 +18,8 @@ interface Config {
   postInterval: number;
   postCount: number;
   postDebug: boolean;
+  parseFolderPrefix: string;
+  targetChats: TargetChats;
 }
 
 export let config: Config;
@@ -26,6 +32,8 @@ export function reloadConfig() {
   const tgApiHash = process.env.TG_API_HASH;
   const tgPhoneNumber = process.env.TG_PHONE_NUMBER;
   const networkToken = process.env.AI_TOKEN;
+  const parseFolderPrefix = process.env.PARSE_FOLDER_PREFIX;
+  const targetChats = process.env.TARGET_CHATS;
 
   const tdDatabaseDir = process.env.TD_DATABASE_DIR;
   const tdFilesDir = process.env.TD_FILES_DIR;
@@ -39,6 +47,7 @@ export function reloadConfig() {
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number = 3;
   let postDebugBoolean: boolean = false;
+  const targetChatsObject: TargetChats = {};
 
   if (!tgApiId || !tgApiHash) {
     throw new Error("Api parameters not found");
@@ -50,6 +59,24 @@ export function reloadConfig() {
 
   if (!networkToken) {
     throw new Error("NN configuration not found");
+  }
+
+  if (!parseFolderPrefix) {
+    throw new Error("Parse folder prefix not found");
+  }
+
+  if (targetChats) {
+    for (const entry of targetChats.split(';')) {
+      const delimeter = entry.indexOf('=');
+      if (delimeter === -1 || delimeter === 0 || delimeter === (entry.length - 1)) {
+        throw new Error('Incorrect format of target chats configuration');
+      }
+      const id = Number.parseInt(entry.substring(delimeter + 1));
+      if (Number.isNaN(id)) {
+        throw new Error(`Incorrect format of target chat id: ${entry}`);
+      }
+      targetChatsObject[entry.substring(0, delimeter)] = id;
+    }
   }
 
   if (postInterval) {
@@ -82,7 +109,9 @@ export function reloadConfig() {
     networkToken,
     postInterval: postIntervalNumber,
     postCount: postCountNumber,
-    postDebug: postDebugBoolean
+    postDebug: postDebugBoolean,
+    parseFolderPrefix,
+    targetChats: targetChatsObject
   }
 }
 

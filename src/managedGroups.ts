@@ -2,10 +2,10 @@ import { logger } from "./logger";
 import { client } from ".";
 import { config } from "./configuration";
 import { askAI } from "./ai";
-import { systemPrompt } from "./ai/prompts";
 import fs from 'fs';
 import path from "path";
-import { chat, message } from "tdlib-types";
+import { message } from "tdlib-types";
+import { clusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 
 export interface Group {
   id: number;
@@ -13,60 +13,86 @@ export interface Group {
 }
 
 interface Post {
+  id: number;
   text: string;
-  video?: boolean;
-  photo?: boolean;
 }
 
-interface GroupWithNews {
-  title: string;
-  posts: Array<Post>;
-}
-
-interface Posts {
-  targetChat: number;
-  groups: Array<GroupWithNews>;
+interface PostCluster {
+  [key: string]: Array<number>;
 }
 
 export const managedGroups: Array<Group> = [];
 
-const postSummary = () => {
+const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, time));
+
+const postSummary = async () => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
-  managedGroups.forEach(async group => {
+  const messages = await Promise.all(managedGroups.flatMap(async group => {
+    if (!group.title.startsWith(config.parseFolderPrefix)) {
+      return [];
+    }
     const unreadMessages = await gatherUnreadMessages(group.id, config.postCount);
-
-    if (!unreadMessages || unreadMessages.groups.flatMap(gr => gr.posts).length === 0) {
-      logger.info('No new messages for group %s', group.id);
-      return;
-    }
-
     if (process.env.TEST) {
-      fs.writeFileSync(path.resolve(process.cwd(), `posts_${group.id}.json`, ), JSON.stringify(unreadMessages.groups));
-      return;
+      fs.writeFileSync(path.resolve(process.cwd(), `posts_${group.id}.json`, ), JSON.stringify(unreadMessages));
     }
-    const aiAnswer = await askAI(systemPrompt, JSON.stringify(unreadMessages));
 
-    if (!aiAnswer) {
-      logger.error('Empty answer from ai for group %d', group.id);
-      return;
+    return unreadMessages;
+  })).then(result => result.flat());
+  
+  const aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages));
+
+  if (!aiAnswer) {
+    logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
+    return;
+  }
+  const clusters: PostCluster = JSON.parse(aiAnswer);
+
+  for (const key in clusters) {
+    const targetChatId = config.targetChats[key];
+    if (targetChatId === undefined) {
+      logger.warn('Target chat for "%s" not specified', key);
+      continue;
     }
-    if (config.postDebug) {
-      logger.info('Ai answer for group %d: %s', group.id, aiAnswer);
-    } else {
-      await client.invoke({
-        _: 'sendMessage',
-        chat_id: group.targetChatId,
-        input_message_content: {
-          _: 'inputMessageText',
-          text: {
-            _: 'formattedText',
-            text: aiAnswer,
-          }
+    const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(msg => msg.text);
+    let summaryRaw = null;
+    let success = false;
+    let retries = 0;
+
+    while (!success && retries < 5) {
+      if (retries > 0) {
+        logger.info('Retrying summary request in 1 minute');
+        await timeout(60 * 1000);
+      }
+      await askAI(summaryPrompt, JSON.stringify(posts))
+        .then(answer => ({summaryRaw: answer, success: true}))
+        .catch(async reason => {
+          logger.error('Error on summary ai request', reason);
+          retries++;
+          return ({ summaryRaw: null, success: false });
+        });
+    }
+
+    if (!summaryRaw) {
+      logger.error('Empty answer from ai for summary of %n posts', posts.length);
+      continue;
+    }
+    const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
+
+    const text = summaryArr.map((summary, index) => `${index + 1}. ${summary.emoji} ${summary.summary_short}\n${summary.summary_detailed}`).join('\n');
+    await client.invoke({
+      _: 'sendMessage',
+      chat_id: targetChatId,
+      input_message_content: {
+        _: 'inputMessageText',
+        text: {
+          _: 'formattedText',
+          text,
         }
-      });
-    }
-    
-  });
+      }
+    });
+  }
+  
+  
 };
 
 const interval = setInterval(postSummary, config.postInterval);
@@ -74,10 +100,29 @@ if (config.postInterval > (1000 * 60 * 10)) {
   setTimeout(postSummary, 60 * 1000);
 }
 
-async function loadChatHistory(chat: chat, toDate: number, limitPerChat: number = 10) {
+// setTimeout(() => {
+//   managedGroups.forEach(folder => {
+//     logger.info('Manager folder: %s', JSON.stringify(folder));
+//     if (folder.title.toLowerCase() === 'наши') {
+//         client.invoke({
+//           _: 'getChats',
+//           chat_list: {
+//             _: 'chatListFolder',
+//             chat_folder_id: folder.id,
+//           },
+//           limit: 20
+//         }).then(chats => Promise.all(chats.chat_ids.map(chat_id => client.invoke({
+//           _: 'getChat',
+//           chat_id
+//         }).then(chat => ({title: chat.title, id: chat.id})))).then(chats => logger.info('Our chats: %s', JSON.stringify(chats))));
+//       }
+//     });
+// }, 60 * 1000);
+
+async function loadChatHistory(chatId: number, toDate: number, limitPerChat: number = 10) {
   await client.invoke({
     _: 'openChat',
-    chat_id: chat.id
+    chat_id: chatId
   });
 
   const arr: Array<message> = [];
@@ -87,7 +132,7 @@ async function loadChatHistory(chat: chat, toDate: number, limitPerChat: number 
   while (arr.length < limitPerChat) {
     const messages = await client.invoke({
       _: 'getChatHistory',
-      chat_id: chat.id,
+      chat_id: chatId,
       limit: limitPerChat,
       offset
     }).then(messages => {
@@ -111,20 +156,20 @@ async function loadChatHistory(chat: chat, toDate: number, limitPerChat: number 
 
   const posts: Array<Post> = arr.map((msg) => {
     if (msg?.content._ === 'messageText') {
-      return {text: msg.content.text.text};
+      return {text: msg.content.text.text, id: msg.id};
     }
     if (msg?.content._ === 'messagePhoto') {
-      return {text: msg.content.caption.text, photo: true};
+      return {text: msg.content.caption.text, id: msg.id};
     }
     if (msg?.content._ === 'messageVideo') {
-      return {text: msg.content.caption.text, video: true};
+      return {text: msg.content.caption.text, id: msg.id};
     }
     return undefined;
   }).filter(post => post !== undefined);
       
   await client.invoke({
     _: 'viewMessages',
-    chat_id: chat.id,
+    chat_id: chatId,
     message_ids: arr.map(msg => msg?.id).filter(id => id != undefined),
     source: {
       _: 'messageSourceChatHistory',
@@ -132,10 +177,10 @@ async function loadChatHistory(chat: chat, toDate: number, limitPerChat: number 
     force_read: true,
   });
 
-  return {title: chat.title, posts};
+  return posts;
 }
 
-export async function gatherUnreadMessages(folderId: number, limitPerChat?: number): Promise<Posts | undefined> {
+export async function gatherUnreadMessages(folderId: number, limitPerChat?: number): Promise<Post[]> {
   const toDate = Date.now() - 3600000;
 
   const chats = await client.invoke({
@@ -144,7 +189,7 @@ export async function gatherUnreadMessages(folderId: number, limitPerChat?: numb
       _: 'chatListFolder',
       chat_folder_id: folderId,
     },
-    limit: 20
+    limit: 50
   }).then(chats => (chats.chat_ids));
 
   if (!chats) {
@@ -152,21 +197,6 @@ export async function gatherUnreadMessages(folderId: number, limitPerChat?: numb
   }
 
   return await Promise.all([
-    ...chats.map(chatId => client.invoke({
-      _: 'getChat',
-      chat_id: chatId,
-    }))
-  ]).then(async chat_infos => {
-    const targetChat = chat_infos.find(chat => chat.positions.some(pos => pos.list._ === 'chatListFolder' && pos.list.chat_folder_id === folderId && pos.is_pinned));
-    if (!targetChat) {
-      logger.info('Could not find target chat for folder=%n', folderId);
-      return undefined;
-    }
-    const groups = await Promise.all(
-      chat_infos.filter(chat => chat.id !== targetChat.id).map(chat => loadChatHistory(chat, toDate, limitPerChat))
-    );
-
-    return {targetChat: targetChat.id, groups};
-  });
-  
+    ...chats.map(chatId => loadChatHistory(chatId, toDate, limitPerChat))
+  ]).then(messages => messages.flat());
 }

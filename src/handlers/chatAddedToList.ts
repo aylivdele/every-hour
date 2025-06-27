@@ -2,14 +2,14 @@ import { updateChatAddedToList, updateNewChat, updateNewMessage, updateUnreadMes
 import { managedGroups } from "../managedGroups";
 
 export async function handleChatAddedToList(update: updateChatAddedToList) {
-  const chatId = update.chat_id;
+  // const chatId = update.chat_id;
 
-  if (update.chat_list._ === 'chatListFolder') {
-    const folderId = update.chat_list.chat_folder_id;
-    managedGroups.forEach(group => {
-      if (group.id === folderId && group.targetChatId !== chatId && !group.sourceChatIds.some(sci => sci === chatId)) {
-        group.sourceChatIds.push(chatId);
-      }
-    });
-  }
+  // if (update.chat_list._ === 'chatListFolder') {
+  //   const folderId = update.chat_list.chat_folder_id;
+  //   managedGroups.forEach(group => {
+  //     if (group.id === folderId && group.targetChatId !== chatId && !group.sourceChatIds.some(sci => sci === chatId)) {
+  //       group.sourceChatIds.push(chatId);
+  //     }
+  //   });
+  // }
 }
