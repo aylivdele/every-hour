@@ -57,6 +57,10 @@ const postSummary = async () => {
     let summaryRaw = null;
     let success = false;
     let retries = 0;
+    
+    if (posts.length === 0) {
+      continue;
+    }
 
     while (!success && retries < 5) {
       if (retries > 0) {
