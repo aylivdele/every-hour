@@ -27,8 +27,10 @@ const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, tim
 
 const postSummary = async () => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
+  const mskOffset = 3 * 60 * 60 * 1000;
   const toDate = Math.floor((Date.now() - 3600000) / 1000);
-  const currentDate = new Date(Date.now());
+  let currentDate = new Date();
+  currentDate = new Date(currentDate.getTime() + currentDate.getTimezoneOffset() * 60000 + mskOffset);
 
   const messages = await Promise.all(managedGroups.flatMap(async group => {
     if (!group.title.startsWith(config.parseFolderPrefix)) {
@@ -87,9 +89,10 @@ const postSummary = async () => {
     }
     const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
 
-    const toDateObject = new Date(toDate * 1000);
+    let toDateObject = new Date(toDate * 1000);
+    toDateObject = new Date(toDateObject.getTime() + toDateObject.getTimezoneOffset() * 60000 + mskOffset)
 
-    let text = `🕐 Главное за ${toDateObject.getDate().toString().padStart(2, '0')}.${toDateObject.toLocaleString('ru', {month: 'short'})} ${toDateObject.getHours().toString().padStart(2, '0')}:${toDateObject.getMinutes().toString().padStart(2, '0')} - ${currentDate.getDate().toString().padStart(2, '0')}-${currentDate.toLocaleString('ru', {month: 'short'})} ${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`;
+    let text = `🕐 Главное за ${toDateObject.getDate().toString().padStart(2, '0')} ${toDateObject.toLocaleString('ru', {month: 'short'})} ${toDateObject.getHours().toString().padStart(2, '0')}:${toDateObject.getMinutes().toString().padStart(2, '0')} - ${currentDate.getDate().toString().padStart(2, '0')} ${currentDate.toLocaleString('ru', {month: 'short'})} ${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`;
     text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}`, `${text}\n\n🔹 Коротко:`);
     text += '\n\n📌 Подробности:';
     text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}`, text);
