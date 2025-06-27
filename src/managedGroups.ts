@@ -57,7 +57,7 @@ const postSummary = async () => {
     let summaryRaw = null;
     let success = false;
     let retries = 0;
-    
+
     if (posts.length === 0) {
       continue;
     }
@@ -145,7 +145,7 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
       limit: limitPerChat - arr.length,
       offset: 0
     }).then(messages => {
-      logger.info('Loaded %d/%d messages: %s', messages.messages.length, messages.total_count, JSON.stringify(messages.messages));
+      logger.info('Loaded %d/%d messages for %d: %s', messages.messages.length, messages.total_count, chatId, messages.messages.map(msg => msg?.id).join(','));
       return messages.messages.filter(msg => !!msg?.id);
     });
 
@@ -164,11 +164,11 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
       }
     }
     if (reachedDate) {
-      logger.info('Reached date, saved %d/%d messages', arr.length, messages.length);
+      logger.info('Reached date for %d, saved %d/%d messages', chatId, arr.length, messages.length);
       break;
     }
   }
-  logger.info('Exit cycle with %d messages', arr.length);
+  logger.info('Exit cycle for %d with %d messages',chatId, arr.length);
 
   const posts: Array<Post> = arr.map((msg) => {
     if (msg?.content._ === 'messageText') {
