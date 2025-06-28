@@ -4,8 +4,9 @@ import { config } from "./configuration";
 import { askAI } from "./ai";
 import fs from 'fs';
 import path from "path";
-import { chat, message } from "tdlib-types";
+import { message } from "tdlib-types";
 import { clusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
+import { getDateIntervalString, toMskOffset } from "./utils/date";
 
 export interface Group {
   id: number;
@@ -27,16 +28,23 @@ const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, tim
 
 const postSummary = async () => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
-  const mskOffset = 3 * 60 * 60 * 1000;
-  const toDate = Math.floor((Date.now() - 3600000) / 1000);
-  let currentDate = new Date();
-  currentDate = new Date(currentDate.getTime() + currentDate.getTimezoneOffset() * 60000 + mskOffset);
+
+  const currentDate = toMskOffset(new Date());
+  let postInterval = config.postInterval;
+
+  if (currentDate.getHours() >= 22 || currentDate.getHours() < 8) {
+    logger.info('Skipping posting for a night');
+    return;
+  } else if (currentDate.getHours() === 8) {
+    postInterval = 60 * 60 * 1000 * 9;
+  }
+  const fromDateSeconds = Math.floor((Date.now() - postInterval) / 1000);
 
   const messages = await Promise.all(managedGroups.flatMap(async group => {
     if (!group.title.startsWith(config.parseFolderPrefix)) {
       return [];
     }
-    const unreadMessages = await gatherUnreadMessages(toDate, group.id, config.postCount);
+    const unreadMessages = await gatherUnreadMessages(fromDateSeconds, group.id, config.postCount);
     if (process.env.TEST) {
       fs.writeFileSync(path.resolve(process.cwd(), `posts_${group.id}.json`, ), JSON.stringify(unreadMessages));
     }
@@ -89,13 +97,13 @@ const postSummary = async () => {
     }
     const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
 
-    let toDateObject = new Date(toDate * 1000);
-    toDateObject = new Date(toDateObject.getTime() + toDateObject.getTimezoneOffset() * 60000 + mskOffset)
+    let fromDate = toMskOffset(new Date(fromDateSeconds * 1000));
 
-    let text = `🕐 Главное за ${toDateObject.getDate().toString().padStart(2, '0')} ${toDateObject.toLocaleString('ru', {month: 'short'})} ${toDateObject.getHours().toString().padStart(2, '0')}:${toDateObject.getMinutes().toString().padStart(2, '0')} - ${currentDate.getDate().toString().padStart(2, '0')} ${currentDate.toLocaleString('ru', {month: 'short'})} ${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`;
+    let text = `🕐 Главное за ${ getDateIntervalString(fromDate, currentDate)}`;
     text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}`, `${text}\n\n🔹 Коротко:`);
     text += '\n\n📌 Подробности:';
     text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}`, text);
+
     await client.invoke({
       _: 'sendMessage',
       chat_id: targetChatId,
@@ -108,8 +116,6 @@ const postSummary = async () => {
       }
     });
   }
-  
-  
 };
 
 const interval = setInterval(postSummary, config.postInterval);
@@ -117,26 +123,7 @@ if (config.postInterval > (1000 * 60 * 10)) {
   setTimeout(postSummary, 60 * 1000);
 }
 
-// setTimeout(() => {
-//   managedGroups.forEach(folder => {
-//     logger.info('Manager folder: %s', JSON.stringify(folder));
-//     if (folder.title.toLowerCase() === 'наши') {
-//         client.invoke({
-//           _: 'getChats',
-//           chat_list: {
-//             _: 'chatListFolder',
-//             chat_folder_id: folder.id,
-//           },
-//           limit: 20
-//         }).then(chats => Promise.all(chats.chat_ids.map(chat_id => client.invoke({
-//           _: 'getChat',
-//           chat_id
-//         }).then(chat => ({title: chat.title, id: chat.id})))).then(chats => logger.info('Our chats: %s', JSON.stringify(chats))));
-//       }
-//     });
-// }, 60 * 1000);
-
-async function loadChatHistory(chatId: number, toDate: number, limitPerChat: number = 10) {
+async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: number = 10) {
   // await client.invoke({
   //   _: 'openChat',
   //   chat_id: chatId
@@ -162,7 +149,7 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
 
     for (const msg of messages) {
       if (!!msg?.id) {
-        if (msg.date > toDate) {
+        if (msg.date > fromDate) {
           if (!arr.some(am => am.id === msg.id)) {
             arr.push(msg);   
           }
@@ -207,8 +194,7 @@ async function loadChatHistory(chatId: number, toDate: number, limitPerChat: num
   return posts;
 }
 
-export async function gatherUnreadMessages(toDate: number, folderId: number, limitPerChat?: number): Promise<Post[]> {
-
+export async function gatherUnreadMessages(fromDate: number, folderId: number, limitPerChat?: number): Promise<Post[]> {
   const chats = await client.invoke({
     _: 'getChats',
     chat_list: {
@@ -222,7 +208,10 @@ export async function gatherUnreadMessages(toDate: number, folderId: number, lim
     return Promise.reject(`Folder with id=${folderId} not found`);
   }
 
-  return await Promise.all([
-    ...chats.map(chatId => loadChatHistory(chatId, toDate, limitPerChat))
-  ]).then(messages => messages.flat());
+  const result: Array<Post> = [];
+
+  for (const chat of chats) {
+    result.push(...(await loadChatHistory(chat, fromDate, limitPerChat)));
+  }
+  return result;
 }
