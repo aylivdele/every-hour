@@ -107,7 +107,7 @@ const postSummary = async () => {
           acc.push({_: 'textEntity', offset: index, length: entity.text.length, type: entity.type});
           offset = index + entity.text.length;
         }
-        return acc;``
+        return acc;
       }, []) ?? [];
     })
 
