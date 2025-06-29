@@ -4,22 +4,14 @@ import { config } from "./configuration";
 import { askAI } from "./ai";
 import fs from 'fs';
 import path from "path";
-import { message } from "tdlib-types";
+import { message, textEntity$Input } from "tdlib-types";
 import { clusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 import { getDateIntervalString, toMskOffset } from "./utils/date";
+import { Entity, mapMessageToPost, Post, PostCluster } from "./utils/post";
 
 export interface Group {
   id: number;
   title: string;
-}
-
-interface Post {
-  id: number;
-  text: string;
-}
-
-interface PostCluster {
-  [key: string]: Array<number>;
 }
 
 export const managedGroups: Array<Group> = [];
@@ -31,12 +23,14 @@ const postSummary = async () => {
 
   const currentDate = toMskOffset(new Date());
   let postInterval = config.postInterval;
+  let maxCountOfNews = 5;
 
   if (currentDate.getHours() >= 22 || currentDate.getHours() < 8) {
     logger.info('Skipping posting for a night');
     return;
   } else if (currentDate.getHours() === 8) {
     postInterval = 60 * 60 * 1000 * 9;
+    maxCountOfNews = 8;
   }
   const fromDateSeconds = Math.floor((Date.now() - postInterval) / 1000);
 
@@ -52,7 +46,7 @@ const postSummary = async () => {
     return unreadMessages;
   })).then(result => result.flat());
   
-  const aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages));
+  const aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))));
 
   if (!aiAnswer) {
     logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
@@ -66,7 +60,7 @@ const postSummary = async () => {
       logger.warn('Target chat for "%s" not specified', key);
       continue;
     }
-    const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(msg => msg.text);
+    const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
     let summaryRaw = null;
     let success = false;
     let retries = 0;
@@ -80,7 +74,7 @@ const postSummary = async () => {
         logger.info('Retrying summary request in 1 minute');
         await timeout(60 * 1000);
       }
-      const {newSuccess, newSummaryRaw} = await askAI(summaryPrompt, JSON.stringify(posts))
+      const {newSuccess, newSummaryRaw} = await askAI(summaryPrompt(maxCountOfNews), JSON.stringify(posts))
         .then(answer => ({newSummaryRaw: answer, newSuccess: true}))
         .catch(async reason => {
           logger.error('Error on summary ai request', reason);
@@ -104,6 +98,19 @@ const postSummary = async () => {
     text += '\n\n📌 Подробности:';
     text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}`, text);
 
+    const entities: Array<textEntity$Input> = summaryArr.flatMap(({id}) => {
+      const post = messages.find(message => message.id === id);
+      return post?.entities?.reduce((acc: Array<textEntity$Input>, entity) => {
+        let index;
+        let offset = 0;
+        while ((index = text.indexOf(entity.text, offset)) > -1) {
+          acc.push({_: 'textEntity', offset: index, length: entity.text.length, type: entity.type});
+          offset = index + entity.text.length;
+        }
+        return acc;``
+      }, []) ?? [];
+    })
+
     await client.invoke({
       _: 'sendMessage',
       chat_id: targetChatId,
@@ -112,6 +119,7 @@ const postSummary = async () => {
         text: {
           _: 'formattedText',
           text,
+          entities: entities || undefined
         }
       }
     });
@@ -168,18 +176,7 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
   }
   logger.info('Exit cycle for %d with %d messages',chatId, arr.length);
 
-  const posts: Array<Post> = arr.map((msg) => {
-    if (msg?.content._ === 'messageText') {
-      return {text: msg.content.text.text, id: msg.id};
-    }
-    if (msg?.content._ === 'messagePhoto') {
-      return {text: msg.content.caption.text, id: msg.id};
-    }
-    if (msg?.content._ === 'messageVideo') {
-      return {text: msg.content.caption.text, id: msg.id};
-    }
-    return undefined;
-  }).filter(post => post !== undefined);
+  const posts: Array<Post> = arr.map(mapMessageToPost).filter(post => post !== undefined);
       
   await client.invoke({
     _: 'viewMessages',
