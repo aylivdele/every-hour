@@ -7,7 +7,7 @@ import path from "path";
 import { message, textEntity$Input } from "tdlib-types";
 import { clusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 import { getDateIntervalString, toMskOffset } from "./utils/date";
-import { Entity, mapMessageToPost, Post, PostCluster } from "./utils/post";
+import { Entity, mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
 
 export interface Group {
   id: number;
@@ -18,20 +18,24 @@ export const managedGroups: Array<Group> = [];
 
 const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, time));
 
-const postSummary = async () => {
+export const postSummary = async (force?: boolean) => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
 
-  const currentDate = toMskOffset(new Date());
+  const startDate = new Date();
+  const currentDate = toMskOffset(startDate);
   let postInterval = config.postInterval;
   let maxCountOfNews = 5;
 
-  if (currentDate.getHours() >= 22 || currentDate.getHours() < 8) {
-    logger.info('Skipping posting for a night');
-    return;
-  } else if (currentDate.getHours() === 8) {
-    postInterval = 60 * 60 * 1000 * 9;
-    maxCountOfNews = 8;
+  if (!force) {
+    if (currentDate.getHours() >= 22 || currentDate.getHours() < 7) {
+      logger.info('Skipping posting for a night');
+      return;
+    } else if (currentDate.getHours() === 7) {
+      postInterval = 60 * 60 * 1000 * 9;
+      maxCountOfNews = 8;
+    }
   }
+  
   const fromDateSeconds = Math.floor((Date.now() - postInterval) / 1000);
 
   const messages = await Promise.all(managedGroups.flatMap(async group => {
@@ -53,6 +57,7 @@ const postSummary = async () => {
     return;
   }
   const clusters: PostCluster = JSON.parse(aiAnswer);
+  const sheduledPosts: Array<SheduledPost> = [];
 
   for (const key in clusters) {
     const targetChatId = config.targetChats[key];
@@ -111,25 +116,33 @@ const postSummary = async () => {
       }, []) ?? [];
     })
 
-    await client.invoke({
-      _: 'sendMessage',
-      chat_id: targetChatId,
-      input_message_content: {
-        _: 'inputMessageText',
-        text: {
-          _: 'formattedText',
-          text,
-          entities: entities || undefined
-        }
-      }
+    sheduledPosts.push({
+      targetChatId,
+      text,
+      entities
     });
   }
-};
 
-const interval = setInterval(postSummary, config.postInterval);
-if (config.postInterval > (1000 * 60 * 10)) {
-  setTimeout(postSummary, 60 * 1000);
-}
+  const publishDate = new Date(startDate);
+  publishDate.setHours(publishDate.getHours() + 1, 0, 1, 1);
+  
+  setTimeout(async () => {
+    for (const post of sheduledPosts) {
+      await client.invoke({
+        _: 'sendMessage',
+        chat_id: post.targetChatId,
+        input_message_content: {
+          _: 'inputMessageText',
+          text: {
+            _: 'formattedText',
+            text: post.text,
+            entities: post.entities || undefined
+          }
+        }
+      });
+    }
+  }, force ? 0 : (publishDate.getTime() - Date.now()));
+};
 
 async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: number = 10) {
   // await client.invoke({

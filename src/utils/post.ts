@@ -1,9 +1,15 @@
-import { message, textEntityTypeBankCardNumber, textEntityTypeBotCommand, textEntityTypeCashtag, textEntityTypeCustomEmoji, textEntityTypeEmailAddress, textEntityTypeHashtag, textEntityTypeMediaTimestamp, textEntityTypeMention, textEntityTypeMentionName, textEntityTypePhoneNumber, textEntityTypeTextUrl, textEntityTypeUrl } from "tdlib-types";
+import { message, textEntity$Input, textEntityTypeBankCardNumber, textEntityTypeBotCommand, textEntityTypeCashtag, textEntityTypeCustomEmoji, textEntityTypeEmailAddress, textEntityTypeHashtag, textEntityTypeMediaTimestamp, textEntityTypeMention, textEntityTypeMentionName, textEntityTypePhoneNumber, textEntityTypeTextUrl, textEntityTypeUrl } from "tdlib-types";
 
 export type Post = {
   id: number;
   text: string;
   entities?: Array<Entity>;
+}
+
+export type SheduledPost = {
+  targetChatId: number;
+  text: string;
+  entities?: Array<textEntity$Input>;
 }
 
 export type PostCluster = {

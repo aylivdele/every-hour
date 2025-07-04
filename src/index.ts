@@ -10,6 +10,7 @@ import { handleChatPosition } from './handlers/chatPostition';
 import { handleChatAddedToList } from './handlers/chatAddedToList';
 import { handleChatRemovedFromList } from './handlers/chatRemovedFromList';
 import { handleConnectionState } from './handlers/connectionState';
+import { postSummary } from './managedGroups';
 
 
 
@@ -73,3 +74,19 @@ client.on('update', async (update: Update) => {
 client.on('error', (error) => {
   logger.error('Error:', error);
 });
+
+const date = new Date();
+date.setMinutes(55, 0, 0);
+let startTime = date.getTime();
+if (startTime < Date.now()) {
+  startTime += 1000 * 60 * 60;
+}
+
+setTimeout(() => {
+  setInterval(postSummary, config.postInterval);
+}, startTime - Date.now());
+
+
+if (config.postDebug && (startTime - Date.now()) > (1000 * 60 * 10)) {
+  setTimeout(() => postSummary(true), 60 * 1000);
+}

@@ -14,7 +14,7 @@ export function askAI(systemPrompt: string, userPrompt: string, ...history: stri
   }
   messages.push({ role: 'user', content: userPrompt })
   return openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: config.networkModel || 'gpt-4o-mini',
     store: true,
     messages,
   }).then(
