@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-
+cd $(dirname $0)
 npm run build
-SCRIPT_DIR=$(dirname $0)
-touch "$SCRIPT_DIR/.env"
-cp "$SCRIPT_DIR/.env" "$SCRIPT_DIR/dist/.env"
-pm2 start 
+touch .env
+cp .env dist/.env
+pm2 start dist/index.js --restart-delay 60000 
