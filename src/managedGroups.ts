@@ -9,6 +9,7 @@ import { checkPrompt, CheckRequest, CheckResult, clusterPrompt, getRetryClusterP
 import { getDateIntervalString, toMskOffset } from "./utils/date";
 import { mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
 import { parseJsonAnswer } from "./utils/json";
+import { removeFromArray } from "./utils/array";
 
 export interface Group {
   id: number;
@@ -58,10 +59,10 @@ export const postSummary = async (force?: boolean) => {
   let clusters: PostCluster = {};
   let checkResult: CheckResult;
   const history: Array<string> = [];
-  const postsString = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
+  let clusterUserPrompt = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
 
   while (checkRetries < config.checkRetries) {
-    let aiAnswer = await askAI(clusterPrompt, postsString, ...history);
+    let aiAnswer = await askAI(clusterPrompt, clusterUserPrompt, ...history);
 
     if (!aiAnswer) {
       logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
@@ -78,10 +79,11 @@ export const postSummary = async (force?: boolean) => {
       return;
     }
     checkResult = parseJsonAnswer(checkResultRaw);
-    if (!(checkResult.dublicates.length || checkResult.notNews.length || checkResult.wrongTopic.length)) {
+    if (!(checkResult.wrongTopic.length || checkResult.dublicates.length || checkResult.notNews.length)) {
       checkRetries = 100;
     } else {
-      history.push(aiAnswer, getRetryClusterPrompt(checkResult));
+      history.push(clusterUserPrompt, aiAnswer);
+      clusterUserPrompt = getRetryClusterPrompt(checkResult);
     }
     checkRetries++;
   }
@@ -96,6 +98,12 @@ export const postSummary = async (force?: boolean) => {
       logger.warn('Target chat for "%s" not specified', key);
       continue;
     }
+    // removeFromArray(clusters[key], checkResult!.notNews);
+    // for (const dublicate of checkResult!.dublicates) {
+    //   if (dublicate.length > 1) {
+    //     removeFromArray(clusters[key], dublicate.slice(1))
+    //   }
+    // }
     const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
     let summaryRaw = null;
     let success = false;
