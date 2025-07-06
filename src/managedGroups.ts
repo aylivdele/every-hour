@@ -8,6 +8,7 @@ import { message, textEntity$Input } from "tdlib-types";
 import { checkPrompt, CheckRequest, CheckResult, clusterPrompt, getRetryClusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 import { getDateIntervalString, toMskOffset } from "./utils/date";
 import { mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
+import { parseJsonAnswer } from "./utils/json";
 
 export interface Group {
   id: number;
@@ -66,7 +67,7 @@ export const postSummary = async (force?: boolean) => {
       logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
       return;
     }
-    clusters = JSON.parse(aiAnswer);
+    clusters = parseJsonAnswer(aiAnswer);
     const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
       const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
       return [entry[0], posts]
@@ -76,7 +77,7 @@ export const postSummary = async (force?: boolean) => {
       logger.error('Empty answer from ai for clusterization check');
       return;
     }
-    checkResult = JSON.parse(checkResultRaw);
+    checkResult = parseJsonAnswer(checkResultRaw);
     if (!(checkResult.dublicates.length || checkResult.notNews.length || checkResult.wrongTopic.length)) {
       checkRetries = 100;
     } else {
@@ -124,7 +125,7 @@ export const postSummary = async (force?: boolean) => {
       logger.error('Empty answer from ai for summary of %n posts', posts.length);
       continue;
     }
-    const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
+    const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw);
 
     let fromDate = toMskOffset(new Date(fromDateSeconds));
 
