@@ -21,6 +21,7 @@ interface Config {
   postDebug: boolean;
   parseFolderPrefix: string;
   targetChats: TargetChats;
+  checkRetries: number;
 }
 
 export let config: Config;
@@ -35,6 +36,7 @@ export function reloadConfig() {
   const networkToken = process.env.AI_TOKEN;
   const parseFolderPrefix = process.env.PARSE_FOLDER_PREFIX;
   const targetChats = process.env.TARGET_CHATS;
+  const checkRetries = process.env.CHECK_RETRIES;
 
   const tdDatabaseDir = process.env.TD_DATABASE_DIR;
   const tdFilesDir = process.env.TD_FILES_DIR;
@@ -48,6 +50,7 @@ export function reloadConfig() {
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;
+  let checkRetriesNumber: number = 3;
   let postDebugBoolean: boolean = false;
   const targetChatsObject: TargetChats = {};
 
@@ -95,6 +98,13 @@ export function reloadConfig() {
     }
   }
 
+  if (checkRetries) {
+    checkRetriesNumber = Number.parseInt(checkRetries);
+    if (Number.isNaN(checkRetriesNumber)) {
+      throw new Error("Check retries is NaN");
+    }
+  }
+
   if (postDebug?.toLowerCase() === 'true') {
     postDebugBoolean = true;
   }
@@ -114,7 +124,8 @@ export function reloadConfig() {
     postDebug: postDebugBoolean,
     parseFolderPrefix,
     targetChats: targetChatsObject,
-    networkModel
+    networkModel,
+    checkRetries: checkRetriesNumber
   }
 }
 

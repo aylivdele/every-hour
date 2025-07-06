@@ -5,9 +5,9 @@ import { askAI } from "./ai";
 import fs from 'fs';
 import path from "path";
 import { message, textEntity$Input } from "tdlib-types";
-import { clusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
+import { checkPrompt, CheckRequest, CheckResult, clusterPrompt, getRetryClusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 import { getDateIntervalString, toMskOffset } from "./utils/date";
-import { Entity, mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
+import { mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
 
 export interface Group {
   id: number;
@@ -21,22 +21,25 @@ const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, tim
 export const postSummary = async (force?: boolean) => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
 
+  const fiveMinutes = (1000 * 60 * 5);
   const startDate = new Date();
   const currentDate = toMskOffset(startDate);
+  currentDate.setTime(currentDate.getTime() + fiveMinutes);
+
   let postInterval = config.postInterval;
   let maxCountOfNews = 5;
 
   if (!force) {
-    if (currentDate.getHours() >= 22 || currentDate.getHours() < 7) {
+    if (currentDate.getHours() > 22 || currentDate.getHours() < 8) {
       logger.info('Skipping posting for a night');
       return;
-    } else if (currentDate.getHours() === 7) {
+    } else if (currentDate.getHours() === 8) {
       postInterval = 60 * 60 * 1000 * 9;
       maxCountOfNews = 8;
     }
   }
   
-  const fromDateSeconds = Math.floor((Date.now() - postInterval) / 1000);
+  let fromDateSeconds = Math.floor((Date.now() - postInterval) / 1000);
 
   const messages = await Promise.all(managedGroups.flatMap(async group => {
     if (!group.title.startsWith(config.parseFolderPrefix)) {
@@ -49,15 +52,42 @@ export const postSummary = async (force?: boolean) => {
 
     return unreadMessages;
   })).then(result => result.flat());
-  
-  const aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))));
 
-  if (!aiAnswer) {
-    logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
-    return;
+  let checkRetries = 0;
+  let clusters: PostCluster = {};
+  let checkResult: CheckResult;
+  const history: Array<string> = [];
+  const postsString = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
+
+  while (checkRetries < config.checkRetries) {
+    let aiAnswer = await askAI(clusterPrompt, postsString, ...history);
+
+    if (!aiAnswer) {
+      logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
+      return;
+    }
+    clusters = JSON.parse(aiAnswer);
+    const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
+      const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
+      return [entry[0], posts]
+    }));
+    const checkResultRaw = await askAI(checkPrompt, JSON.stringify(clustersWithText));
+    if (!checkResultRaw) {
+      logger.error('Empty answer from ai for clusterization check');
+      return;
+    }
+    checkResult = JSON.parse(checkResultRaw);
+    if (!(checkResult.dublicates.length || checkResult.notNews.length || checkResult.wrongTopic.length)) {
+      checkRetries = 100;
+    } else {
+      history.push(aiAnswer, getRetryClusterPrompt(checkResult));
+    }
+    checkRetries++;
   }
-  const clusters: PostCluster = JSON.parse(aiAnswer);
+
   const sheduledPosts: Array<SheduledPost> = [];
+
+  fromDateSeconds = (fromDateSeconds * 1000) + fiveMinutes;
 
   for (const key in clusters) {
     const targetChatId = config.targetChats[key];
@@ -96,7 +126,7 @@ export const postSummary = async (force?: boolean) => {
     }
     const summaryArr: Array<Summary> = JSON.parse(summaryRaw);
 
-    let fromDate = toMskOffset(new Date(fromDateSeconds * 1000));
+    let fromDate = toMskOffset(new Date(fromDateSeconds));
 
     let text = `🕐 Главное за ${ getDateIntervalString(fromDate, currentDate)}`;
     text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}`, `${text}\n\n🔹 Коротко:`);
@@ -156,7 +186,6 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
   let lastMessage: message | undefined;
 
   while (arr.length < limitPerChat) {
-    logger.info('Loading messages for chat "%d" from message "%d"', chatId, lastMessage?.id ?? 0);
     const messages = await client.invoke({
       _: 'getChatHistory',
       chat_id: chatId,
@@ -164,7 +193,6 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
       limit: limitPerChat - arr.length,
       offset: 0
     }).then(messages => {
-      logger.info('Loaded %d/%d messages for %d: %s', messages.messages.length, messages.total_count, chatId, messages.messages.map(msg => msg?.id).join(','));
       return messages.messages.filter(msg => !!msg?.id);
     });
 
@@ -183,11 +211,9 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
       }
     }
     if (reachedDate) {
-      logger.info('Reached date for %d, saved %d/%d messages', chatId, arr.length, messages.length);
       break;
     }
   }
-  logger.info('Exit cycle for %d with %d messages',chatId, arr.length);
 
   const posts: Array<Post> = arr.map(mapMessageToPost).filter(post => post !== undefined);
       
