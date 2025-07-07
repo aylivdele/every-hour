@@ -71,6 +71,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
       logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
       return;
     }
+    history.push(clusterUserPrompt, aiAnswer);
     clusters = parseJsonAnswer(aiAnswer);
     const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
       const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
@@ -85,7 +86,6 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
     if (!(checkResult.wrongTopic.length /* || checkResult.dublicates.length || checkResult.notNews.length*/)) {
       checkRetries = 100;
     } else {
-      history.push(clusterUserPrompt, aiAnswer);
       clusterUserPrompt = getRetryClusterPrompt(checkResult);
     }
     checkRetries++;
@@ -217,7 +217,9 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
             arr.push(msg);   
           }
         } else {
-          reachedDate = true;
+          if (msg.date <= fromDate) {
+            reachedDate = true;
+          }
         }
       }
       if (!lastMessage || msg!.date < (lastMessage?.date || Number.MAX_SAFE_INTEGER) || msg!.id < lastMessage?.id) {
