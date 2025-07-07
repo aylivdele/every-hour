@@ -61,6 +61,8 @@ export const postSummary = async (force?: boolean) => {
   const history: Array<string> = [];
   let clusterUserPrompt = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
 
+  logger.info('Gathered messages: %s', clusterUserPrompt);
+
   while (checkRetries < config.checkRetries) {
     let aiAnswer = await askAI(clusterPrompt, clusterUserPrompt, ...history);
 
@@ -79,7 +81,7 @@ export const postSummary = async (force?: boolean) => {
       return;
     }
     checkResult = parseJsonAnswer(checkResultRaw);
-    if (!(checkResult.wrongTopic.length || checkResult.dublicates.length || checkResult.notNews.length)) {
+    if (!(checkResult.wrongTopic.length /* || checkResult.dublicates.length || checkResult.notNews.length*/)) {
       checkRetries = 100;
     } else {
       history.push(clusterUserPrompt, aiAnswer);
@@ -98,12 +100,12 @@ export const postSummary = async (force?: boolean) => {
       logger.warn('Target chat for "%s" not specified', key);
       continue;
     }
-    // removeFromArray(clusters[key], checkResult!.notNews);
-    // for (const dublicate of checkResult!.dublicates) {
-    //   if (dublicate.length > 1) {
-    //     removeFromArray(clusters[key], dublicate.slice(1))
-    //   }
-    // }
+    removeFromArray(clusters[key], checkResult!.notNews);
+    for (const dublicate of checkResult!.dublicates) {
+      if (dublicate.length > 1) {
+        removeFromArray(clusters[key], dublicate.slice(1))
+      }
+    }
     const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
     let summaryRaw = null;
     let success = false;
