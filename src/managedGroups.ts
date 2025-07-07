@@ -20,13 +20,14 @@ export const managedGroups: Array<Group> = [];
 
 const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, time));
 
-export const postSummary = async (force?: boolean) => {
+export const postSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
   logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
 
   const fiveMinutes = (1000 * 60 * 5);
-  const startDate = new Date();
+  const startDate = new Date(force ? (toDate ?? Date.now()) : Date.now());
   const currentDate = toMskOffset(startDate);
   currentDate.setTime(currentDate.getTime() + fiveMinutes);
+
 
   let postInterval = config.postInterval;
   let maxCountOfNews = 5;
@@ -40,9 +41,11 @@ export const postSummary = async (force?: boolean) => {
       maxCountOfNews = 8;
     }
   }
+  const from = Date.now() - postInterval
+  let fromDateSeconds = Math.floor((force ? (fromDate ?? from) : from) / 1000);
   
-  let fromDateSeconds = Math.floor((Date.now() - postInterval) / 1000);
-
+  logger.info('From date: , to date: %d', fromDateSeconds * 1000, startDate.getTime());
+  
   const messages = await Promise.all(managedGroups.flatMap(async group => {
     if (!group.title.startsWith(config.parseFolderPrefix)) {
       return [];
@@ -185,7 +188,7 @@ export const postSummary = async (force?: boolean) => {
   }, force ? 0 : (publishDate.getTime() - Date.now()));
 };
 
-async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: number = 10) {
+async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: number = 10, toDate?: number) {
   // await client.invoke({
   //   _: 'openChat',
   //   chat_id: chatId
@@ -209,7 +212,7 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
 
     for (const msg of messages) {
       if (!!msg?.id) {
-        if (msg.date > fromDate) {
+        if (msg.date > fromDate && (!toDate || toDate > msg.date)) {
           if (!arr.some(am => am.id === msg.id)) {
             arr.push(msg);   
           }
@@ -241,7 +244,7 @@ async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: n
   return posts;
 }
 
-export async function gatherUnreadMessages(fromDate: number, folderId: number, limitPerChat?: number): Promise<Post[]> {
+export async function gatherUnreadMessages(fromDate: number, folderId: number, limitPerChat?: number, toDate?: number): Promise<Post[]> {
   const chats = await client.invoke({
     _: 'getChats',
     chat_list: {
@@ -258,7 +261,7 @@ export async function gatherUnreadMessages(fromDate: number, folderId: number, l
   const result: Array<Post> = [];
 
   for (const chat of chats) {
-    result.push(...(await loadChatHistory(chat, fromDate, limitPerChat)));
+    result.push(...(await loadChatHistory(chat, fromDate, limitPerChat, toDate)));
   }
   return result;
 }

@@ -88,6 +88,6 @@ setTimeout(() => {
 }, startTime - Date.now());
 
 
-if (config.postDebug && (startTime - Date.now()) > (1000 * 60 * 10)) {
-  setTimeout(() => postSummary(true), 60 * 1000);
+if (config.postDebug) {
+  setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
 }

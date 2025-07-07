@@ -22,6 +22,8 @@ interface Config {
   parseFolderPrefix: string;
   targetChats: TargetChats;
   checkRetries: number;
+  fromDate?: number;
+  toDate?: number;
 }
 
 export let config: Config;
@@ -47,12 +49,17 @@ export function reloadConfig() {
   const postCount = process.env.POST_COUNT;
   const postDebug = process.env.POST_DEBUG;
   const networkModel = process.env.AI_MODEL;
+  const fromDate = process.env.FROM_DATE;
+  const toDate = process.env.TO_DATE;
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;
   let checkRetriesNumber: number = 3;
   let postDebugBoolean: boolean = false;
   const targetChatsObject: TargetChats = {};
+  let fromDateNumber: number | undefined = undefined;
+  let toDateNumber: number | undefined = undefined;
+
 
   if (!tgApiId || !tgApiHash) {
     throw new Error("Api parameters not found");
@@ -105,6 +112,20 @@ export function reloadConfig() {
     }
   }
 
+  if (fromDate) {
+    fromDateNumber = Number.parseInt(fromDate);
+    if (Number.isNaN(fromDateNumber)) {
+      throw new Error("From date is NaN");
+    }
+  }
+
+  if (toDate) {
+    toDateNumber = Number.parseInt(toDate);
+    if (Number.isNaN(toDateNumber)) {
+      throw new Error("From date is NaN");
+    }
+  }
+
   if (postDebug?.toLowerCase() === 'true') {
     postDebugBoolean = true;
   }
@@ -125,7 +146,9 @@ export function reloadConfig() {
     parseFolderPrefix,
     targetChats: targetChatsObject,
     networkModel,
-    checkRetries: checkRetriesNumber
+    checkRetries: checkRetriesNumber,
+    fromDate: fromDateNumber,
+    toDate: toDateNumber
   }
 }
 
