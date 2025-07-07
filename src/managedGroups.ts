@@ -41,16 +41,16 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
       maxCountOfNews = 8;
     }
   }
-  const from = Date.now() - postInterval
+  const from = startDate.getTime() - postInterval;
   let fromDateSeconds = Math.floor((force ? (fromDate ?? from) : from) / 1000);
   
-  logger.info('From date: , to date: %d', fromDateSeconds * 1000, startDate.getTime());
+  logger.info('From date: %d, to date: %d', fromDateSeconds * 1000, startDate.getTime());
   
   const messages = await Promise.all(managedGroups.flatMap(async group => {
     if (!group.title.startsWith(config.parseFolderPrefix)) {
       return [];
     }
-    const unreadMessages = await gatherUnreadMessages(fromDateSeconds, group.id, config.postCount);
+    const unreadMessages = await gatherUnreadMessages(fromDateSeconds, group.id, config.postCount, toDate ? Math.floor(toDate / 1000) : undefined);
     if (process.env.TEST) {
       fs.writeFileSync(path.resolve(process.cwd(), `posts_${group.id}.json`, ), JSON.stringify(unreadMessages));
     }
@@ -63,8 +63,6 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
   let checkResult: CheckResult;
   const history: Array<string> = [];
   let clusterUserPrompt = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
-
-  logger.info('Gathered messages: %s', clusterUserPrompt);
 
   while (checkRetries < config.checkRetries) {
     let aiAnswer = await askAI(clusterPrompt, clusterUserPrompt, ...history);
@@ -92,6 +90,8 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
     }
     checkRetries++;
   }
+
+  logger.info('History of clustering: %s', JSON.stringify(history));
 
   const sheduledPosts: Array<SheduledPost> = [];
 
