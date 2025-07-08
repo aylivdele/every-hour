@@ -95,6 +95,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
 
     let aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))));
 
+    logger.info('Clusterization AI answer: %s', aiAnswer);
     if (!aiAnswer) {
       logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
       return;
@@ -105,6 +106,8 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
       return [entry[0], posts]
     }));
     const deduplicationAnswerRaw = await askAI(dedublicationPrompt, JSON.stringify(clustersWithText));
+  
+    logger.info('Deduplication AI answer: %s', deduplicationAnswerRaw);
     if (!deduplicationAnswerRaw) {
       logger.error('Empty answer from ai for dedublication');
       return;
@@ -152,6 +155,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
             .finally(() => retries++);
           success = newSuccess;
           summaryRaw = newSummaryRaw;
+          logger.info('Summary AI answer: %s', summaryRaw);
         }
 
         if (!summaryRaw) {

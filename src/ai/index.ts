@@ -19,7 +19,7 @@ export function askAI(systemPrompt: string, userPrompt: string, ...history: stri
     messages,
   }).then(
     (result) => {
-      logger.info('Answer of gpt-4o-mini: %s', JSON.stringify(result))
+      // logger.info('Answer of gpt-4o-mini: %s', JSON.stringify(result))
       return result.choices[0].message.content
     },
   )
