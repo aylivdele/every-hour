@@ -129,7 +129,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
         //     removeFromArray(clusters[key], dublicate.slice(1))
         //   }
         // }
-        const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
+        const posts = messages.filter(msg => deduplicatedClusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
         let summaryRaw = null;
         let success = false;
         let retries = 0;
@@ -211,6 +211,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
     
     setTimeout(async () => {
       for (const post of sheduledPosts) {
+        logger.info('Sending sheduled post to ' + post.targetChatId);
         await client.invoke({
           _: 'sendMessage',
           chat_id: post.targetChatId,
@@ -236,10 +237,14 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
           text: {
             _: 'formattedText',
             text: `Собрано ${messages.length} постов;
-            Результат кластеризации: ${Object.entries(clusters).map(([cluster, posts]) => `${cluster}: ${posts.length}`).join(', ')};
-            Результат дедупликации: ${Object.entries(deduplicatedClusters).map(([cluster, posts]) => `${cluster}: ${posts.length}`).join(', ')};
-            Результат выжимки(кол-во новостей): ${Object.entries(clusterSummary).map(([cluster, posts]) => `${cluster}: ${posts}`).join(', ')};
-            Запланирована отправка выжимки для ${ sheduledPosts.length } каналов через ${(publishDate.getTime() - Date.now()) / 1000} секунд.`
+
+Результат кластеризации: ${Object.entries(clusters).map(([cluster, posts]) => `${cluster}: ${posts.length}`).join(', ')};
+
+Результат дедупликации: ${Object.entries(deduplicatedClusters).map(([cluster, posts]) => `${cluster}: ${posts.length}`).join(', ')};
+
+Результат выжимки(кол-во новостей): ${Object.entries(clusterSummary).map(([cluster, posts]) => `${cluster}: ${posts}`).join(', ')};
+
+Запланирована отправка выжимки для ${ sheduledPosts.length } каналов через ${(publishDate.getTime() - Date.now()) / 1000} секунд.`
           }
         }
       });
