@@ -83,12 +83,12 @@ if (startTime < Date.now()) {
   startTime += 1000 * 60 * 60;
 }
 
-// setTimeout(() => {
-//   setInterval(postSummary, config.postInterval);
-//   postSummary();
-// }, startTime - Date.now());
+setTimeout(() => {
+  setInterval(postSummary, config.postInterval);
+  postSummary();
+}, startTime - Date.now());
 
 
-// if (config.postDebug) {
-//   setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
-// }
+if (config.postDebug) {
+  setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
+}
