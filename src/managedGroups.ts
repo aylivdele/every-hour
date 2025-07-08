@@ -189,6 +189,20 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
         });
       } catch (error) {
         logger.error(`Error for ${key} cluster`, error);
+        if (config.debugChatId) {
+          await client.invoke({
+            _: 'sendMessage',
+            chat_id: config.debugChatId,
+            message_thread_id: config.debugThreadId,
+            input_message_content: {
+              _: 'inputMessageText',
+              text: {
+                _: 'formattedText',
+                text: `Ошибка создания выжимки для ${key}: ${error}`
+              }
+            }
+          });
+        }
       }
     }
 
