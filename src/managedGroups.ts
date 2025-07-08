@@ -5,11 +5,13 @@ import { askAI } from "./ai";
 import fs from 'fs';
 import path from "path";
 import { message, textEntity$Input } from "tdlib-types";
-import { checkPrompt, CheckRequest, CheckResult, clusterPrompt, getRetryClusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
+import { checkPrompt, CheckRequest, CheckResult, getRetryClusterPrompt, Summary, summaryPrompt } from "./ai/prompts";
 import { getDateIntervalString, toMskOffset } from "./utils/date";
 import { mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
 import { parseJsonAnswer } from "./utils/json";
 import { removeFromArray } from "./utils/array";
+import { clusterPrompt } from "./ai/prompts/cluster";
+import { dedublicationPrompt } from "./ai/prompts/deduplication";
 
 export interface Group {
   id: number;
@@ -59,40 +61,56 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
       return unreadMessages;
     })).then(result => result.flat());
 
-    let checkRetries = 0;
+    // let checkRetries = 0;
     let clusters: PostCluster = {};
-    let checkResult: CheckResult;
-    const history: Array<string> = [];
-    let clusterUserPrompt = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
+    // let checkResult: CheckResult;
+    // const history: Array<string> = [];
+    // let clusterUserPrompt = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
 
-    while (checkRetries < config.checkRetries) {
-      let aiAnswer = await askAI(clusterPrompt, clusterUserPrompt, ...history);
+    // while (checkRetries < config.checkRetries) {
+    //   let aiAnswer = await askAI(clusterPrompt, clusterUserPrompt, ...history);
 
-      if (!aiAnswer) {
-        logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
-        return;
-      }
-      history.push(clusterUserPrompt, aiAnswer);
-      clusters = parseJsonAnswer(aiAnswer);
-      const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
-        const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
-        return [entry[0], posts]
-      }));
-      const checkResultRaw = await askAI(checkPrompt, JSON.stringify(clustersWithText));
-      if (!checkResultRaw) {
-        logger.error('Empty answer from ai for clusterization check');
-        return;
-      }
-      checkResult = parseJsonAnswer(checkResultRaw);
-      if (!(checkResult.wrongTopic.length /* || checkResult.dublicates.length || checkResult.notNews.length*/)) {
-        checkRetries = 100;
-      } else {
-        clusterUserPrompt = getRetryClusterPrompt(checkResult);
-      }
-      checkRetries++;
+    //   if (!aiAnswer) {
+    //     logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
+    //     return;
+    //   }
+    //   history.push(clusterUserPrompt, aiAnswer);
+    //   clusters = parseJsonAnswer(aiAnswer);
+    //   const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
+    //     const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
+    //     return [entry[0], posts]
+    //   }));
+    //   const checkResultRaw = await askAI(checkPrompt, JSON.stringify(clustersWithText));
+    //   if (!checkResultRaw) {
+    //     logger.error('Empty answer from ai for clusterization check');
+    //     return;
+    //   }
+    //   checkResult = parseJsonAnswer(checkResultRaw);
+    //   if (!(checkResult.wrongTopic.length /* || checkResult.dublicates.length || checkResult.notNews.length*/)) {
+    //     checkRetries = 100;
+    //   } else {
+    //     clusterUserPrompt = getRetryClusterPrompt(checkResult);
+    //   }
+    //   checkRetries++;
+    // }
+
+    let aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))));
+
+    if (!aiAnswer) {
+      logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
+      return;
     }
-
-    logger.info('History of clustering: %s', JSON.stringify(history));
+    clusters = parseJsonAnswer(aiAnswer);
+    const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
+      const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
+      return [entry[0], posts]
+    }));
+    const deduplicationAnswerRaw = await askAI(dedublicationPrompt, JSON.stringify(clustersWithText));
+    if (!deduplicationAnswerRaw) {
+      logger.error('Empty answer from ai for dedublication');
+      return;
+    }
+    clusters = parseJsonAnswer(deduplicationAnswerRaw);
 
     const sheduledPosts: Array<SheduledPost> = [];
 
@@ -104,12 +122,12 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
         logger.warn('Target chat for "%s" not specified', key);
         continue;
       }
-      removeFromArray(clusters[key], checkResult!.notNews);
-      for (const dublicate of checkResult!.dublicates) {
-        if (dublicate.length > 1) {
-          removeFromArray(clusters[key], dublicate.slice(1))
-        }
-      }
+      // removeFromArray(clusters[key], checkResult!.notNews);
+      // for (const dublicate of checkResult!.dublicates) {
+      //   if (dublicate.length > 1) {
+      //     removeFromArray(clusters[key], dublicate.slice(1))
+      //   }
+      // }
       const posts = messages.filter(msg => clusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
       let summaryRaw = null;
       let success = false;
