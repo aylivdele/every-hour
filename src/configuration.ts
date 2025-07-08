@@ -24,6 +24,8 @@ interface Config {
   checkRetries: number;
   fromDate?: number;
   toDate?: number;
+  debugChatId?: number;
+  debugThreadId?: number;
 }
 
 export let config: Config;
@@ -51,6 +53,8 @@ export function reloadConfig() {
   const networkModel = process.env.AI_MODEL;
   const fromDate = process.env.FROM_DATE;
   const toDate = process.env.TO_DATE;
+  const debugChatId = process.env.DEBUG_CHAT;
+  const debugThreadId = process.env.DEBUG_THREAD;
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;
@@ -59,6 +63,8 @@ export function reloadConfig() {
   const targetChatsObject: TargetChats = {};
   let fromDateNumber: number | undefined = undefined;
   let toDateNumber: number | undefined = undefined;
+  let debugChatIdNumber: number | undefined = undefined;
+  let debugThreadIdNumber: number | undefined = undefined;
 
 
   if (!tgApiId || !tgApiHash) {
@@ -126,6 +132,20 @@ export function reloadConfig() {
     }
   }
 
+  if (debugChatId) {
+    debugChatIdNumber = Number.parseInt(debugChatId);
+    if (Number.isNaN(debugChatIdNumber)) {
+      throw new Error("Debug chat id is NaN");
+    }
+  }
+
+  if (debugThreadId) {
+    debugThreadIdNumber = Number.parseInt(debugThreadId);
+    if (Number.isNaN(debugThreadIdNumber)) {
+      throw new Error("Debug thread id is NaN");
+    }
+  }
+
   if (postDebug?.toLowerCase() === 'true') {
     postDebugBoolean = true;
   }
@@ -148,7 +168,9 @@ export function reloadConfig() {
     networkModel,
     checkRetries: checkRetriesNumber,
     fromDate: fromDateNumber,
-    toDate: toDateNumber
+    toDate: toDateNumber,
+    debugChatId: debugChatIdNumber,
+    debugThreadId: debugThreadIdNumber
   }
 }
 

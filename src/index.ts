@@ -46,6 +46,7 @@ const addHandlerToQueue = <T extends Update> (handler: (update: T) => Promise<an
 }
 
 client.on('update', async (update: Update) => {
+  // logger.info(JSON.stringify(update));
   switch (update._) {
     case 'updateAuthorizationState':
       addHandlerToQueue(handleAuth, update);
@@ -82,12 +83,12 @@ if (startTime < Date.now()) {
   startTime += 1000 * 60 * 60;
 }
 
-setTimeout(() => {
-  setInterval(postSummary, config.postInterval);
-  postSummary();
-}, startTime - Date.now());
+// setTimeout(() => {
+//   setInterval(postSummary, config.postInterval);
+//   postSummary();
+// }, startTime - Date.now());
 
 
-if (config.postDebug) {
-  setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
-}
+// if (config.postDebug) {
+//   setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
+// }

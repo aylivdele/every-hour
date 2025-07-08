@@ -8483,7 +8483,7 @@ declare module 'tdlib-types' {
     is_hidden: boolean,
   }
 
-  export type forumTopic = {
+  export type FseforumTopic = {
     /** Describes a forum topic */
     _: 'forumTopic',
     /** Basic information about the topic */
