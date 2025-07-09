@@ -1,6 +1,6 @@
 import path from 'path';
 import winston from 'winston';
-import { config } from './configuration';
+import { config } from '../configuration';
 
 const pathToLogs = config.logDir ?? path.resolve( __dirname, '../logs');
 

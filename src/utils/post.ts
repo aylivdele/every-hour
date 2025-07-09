@@ -1,19 +1,20 @@
 import { message, textEntity$Input, textEntityTypeBankCardNumber, textEntityTypeBotCommand, textEntityTypeCashtag, textEntityTypeCustomEmoji, textEntityTypeEmailAddress, textEntityTypeHashtag, textEntityTypeMediaTimestamp, textEntityTypeMention, textEntityTypeMentionName, textEntityTypePhoneNumber, textEntityTypeTextUrl, textEntityTypeUrl } from "tdlib-types";
 
 export type Post = {
-  id: number;
-  text: string;
-  entities?: Array<Entity>;
+    id: number;
+    text: string;
+    entities?: Array<Entity>;
 }
 
 export type SheduledPost = {
-  targetChatId: number;
-  text: string;
-  entities?: Array<textEntity$Input>;
+    cluster: string;
+    targetChatId: number;
+    text: string;
+    entities?: Array<textEntity$Input>;
 }
 
 export type PostCluster = {
-  [key: string]: Array<number>;
+    [key: string]: Array<number>;
 }
 
 export type ManagableEntities = 

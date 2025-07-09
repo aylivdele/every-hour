@@ -3,14 +3,14 @@ import { getTdjson } from 'prebuilt-tdlib';
 import { config } from './configuration';
 import { handleAuth } from './handlers/auth';
 import { Update } from 'tdlib-types';
-import { logger } from './logger';
 import { handleFolders } from './handlers/folders';
 import { handleNewChat } from './handlers/newChat';
 import { handleChatPosition } from './handlers/chatPostition';
 import { handleChatAddedToList } from './handlers/chatAddedToList';
 import { handleChatRemovedFromList } from './handlers/chatRemovedFromList';
 import { handleConnectionState } from './handlers/connectionState';
-import { postSummary } from './managedGroups';
+import { postSummary } from './service/summary';
+import { logger } from './utils/logger';
 
 
 

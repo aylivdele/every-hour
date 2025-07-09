@@ -1,5 +1,5 @@
 import { updateChatAddedToList, updateChatRemovedFromList, updateNewChat, updateNewMessage, updateUnreadMessageCount } from "tdlib-types";
-import { managedGroups } from "../managedGroups";
+import { managedGroups } from "../service/summary";
 
 export async function handleChatRemovedFromList(update: updateChatRemovedFromList) {
   // const chatId = update.chat_id;

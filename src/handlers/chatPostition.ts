@@ -1,5 +1,5 @@
 import { updateChatPosition, updateNewChat } from "tdlib-types";
-import { managedGroups } from "../managedGroups";
+import { managedGroups } from "../service/summary";
 
 export async function handleChatPosition(update: updateChatPosition) {
   // const chatId = update.chat_id;

@@ -1,6 +1,6 @@
 import { updateConnectionState, updateNewChat } from "tdlib-types";
 import { handleChatPosition } from "./chatPostition";
-import { gatherUnreadMessages, managedGroups } from "../managedGroups";
+import { gatherUnreadMessages, managedGroups } from "../service/summary";
 import { client } from "..";
 
 export async function handleConnectionState(update: updateConnectionState) {

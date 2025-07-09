@@ -1,5 +1,5 @@
 import { updateChatFolders } from "tdlib-types";
-import { managedGroups } from "../managedGroups";
+import { managedGroups } from "../service/summary";
 
 export async function handleFolders(update: updateChatFolders) {
   const folders = update.chat_folders;

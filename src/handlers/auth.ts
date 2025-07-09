@@ -1,7 +1,7 @@
 import { updateAuthorizationState } from "tdlib-types";
 import { client } from "..";
 import { config, reloadConfig } from "../configuration";
-import { logger } from "../logger";
+import { logger } from "../utils/logger";
 
 export async function handleAuth(update: updateAuthorizationState) {
   switch (update.authorization_state._) {

@@ -1,17 +1,18 @@
-import { logger } from "./logger";
-import { client } from ".";
-import { config } from "./configuration";
-import { askAI } from "./ai";
+import { logger } from "../utils/logger";
+import { client } from "..";
+import { config } from "../configuration";
+import { askAI } from "../ai";
 import fs from 'fs';
 import path from "path";
 import { message, textEntity$Input } from "tdlib-types";
-import { CheckRequest } from "./ai/prompts";
-import { getDateIntervalString, toMskOffset } from "./utils/date";
-import { mapMessageToPost, Post, PostCluster, SheduledPost } from "./utils/post";
-import { parseJsonAnswer } from "./utils/json";
-import { clusterPrompt } from "./ai/prompts/cluster";
-import { dedublicationPrompt } from "./ai/prompts/deduplication";
-import { summaryPrompt, Summary } from "./ai/prompts/summary";
+import { CheckRequest } from "../ai/prompts";
+import { getDateIntervalString, toMskOffset } from "../utils/date";
+import { mapMessageToPost, Post, PostCluster, SheduledPost } from "../utils/post";
+import { parseJsonAnswer } from "../utils/json";
+import { clusterPrompt } from "../ai/prompts/cluster";
+import { dedublicationPrompt } from "../ai/prompts/deduplication";
+import { summaryPrompt, Summary } from "../ai/prompts/summary";
+import { archiveStatistics, logStatistics, updateClusterStatistics } from "../statistics";
 
 export interface Group {
   id: number;
@@ -23,6 +24,7 @@ export const managedGroups: Array<Group> = [];
 const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, time));
 
 export const postSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
+  
   try {
     logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
 
@@ -34,6 +36,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
 
     let postInterval = config.postInterval;
     let maxCountOfNews = 5;
+    let isLastForToday = false;
 
     if (!force) {
       if (currentDate.getHours() > 22 || currentDate.getHours() < 8) {
@@ -42,6 +45,8 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
       } else if (currentDate.getHours() === 8) {
         postInterval = 60 * 60 * 1000 * 9;
         maxCountOfNews = 8;
+      } else if (currentDate.getHours() === 22) {
+        isLastForToday = true;
       }
     }
     const from = startDate.getTime() - postInterval;
@@ -187,6 +192,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
         })
 
         sheduledPosts.push({
+          cluster: key,
           targetChatId,
           text,
           entities
@@ -252,6 +258,11 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
           }
         }
       });
+    }
+    const statistics = updateClusterStatistics(sheduledPosts.map(post => post.cluster), 1);
+    if (isLastForToday) {
+      await logStatistics(statistics);
+      archiveStatistics();
     }
   } catch (error) {
     logger.error('PostSummary error: ', error);

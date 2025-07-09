@@ -138,3 +138,5 @@ _td_database
 _td_files
 
 posts_*.json
+
+db/
