@@ -18,7 +18,7 @@ export function askAI(systemPrompt: string, userPrompt: string, ...history: stri
     model: config.networkModel || 'gpt-4o-mini',
     store: true,
     input: messages,
-    reasoning: {effort: 'high'}
+    reasoning: {effort: 'medium'}
   }).then(
     (result) => {
       // logger.info('Answer of gpt-4o-mini: %s', JSON.stringify(result))
