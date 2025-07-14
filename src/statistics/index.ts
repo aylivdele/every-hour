@@ -6,7 +6,10 @@ import { config } from "../configuration";
 
 export interface Statistics {
     intervals: number;
-    clusters: {[cluster: string]: number};
+    clusters: {[cluster: string]: {
+        posts: number;
+        news: number;
+    }};
     inputTokens: number;
     outputTokens: number;
 }
@@ -14,10 +17,13 @@ export interface Statistics {
 const statisticsDir = path.join(path.dirname(require.main?.filename ?? __filename), '../db');
 const statisticsFile = path.join(statisticsDir, 'statistics.json');
 
-export function updateClusterStatistics(clusters: Array<string>, intervals: number = 0): Statistics {
+export function updateClusterStatistics(news: {[cluster: string]: number}, intervals: number = 0): Statistics {
     const statistics = loadStatistics();
-    for (const cluster of clusters) {
-        statistics.clusters[cluster] = (statistics.clusters[cluster] ?? 0) + 1;
+    for (const cluster in news) {
+        const clusterObj = statistics.clusters[cluster] ?? {posts: 0, news: 0};
+        statistics.clusters[cluster] = clusterObj;
+        clusterObj.posts = clusterObj.posts + 1;
+        clusterObj.news = clusterObj.news + news[cluster];
     }
     statistics.intervals += intervals;
     saveStatistics(statistics);
@@ -66,8 +72,8 @@ export async function logStatistics(statistics: Statistics) {
 Количество запусков: ${statistics.intervals}
 Входных токенов: ${statistics.inputTokens}
 Выходных токенов: ${statistics.outputTokens}
-Постов по темам:
-${Object.entries(statistics.clusters).map(([cluster, count]) => `- ${cluster}: ${count}`).join('\n')}`
+Постов(новостей) по темам:
+${Object.entries(statistics.clusters).map(([cluster, count]) => `- ${cluster}: ${count.posts}(${count.news})`).join('\n')}`
             }
         }
         });

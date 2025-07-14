@@ -167,8 +167,12 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
           logger.error('Empty answer from ai for summary of %n posts', posts.length);
           continue;
         }
-        const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw);
+        const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw).filter((sum: Summary) => !!sum.summary_detailed && !!sum.summary_short);
 
+        if (!summaryArr.length) {
+          logger.error('Empty summary array for cluster %s', key);
+          continue;
+        }
         clusterSummary[key] = summaryArr.length;
 
         let fromDate = toMskOffset(new Date(fromDateSeconds));
@@ -259,7 +263,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
         }
       });
     }
-    const statistics = updateClusterStatistics(sheduledPosts.map(post => post.cluster), 1);
+    const statistics = updateClusterStatistics(clusterSummary, 1);
     if (isLastForToday) {
       await logStatistics(statistics);
       archiveStatistics();
