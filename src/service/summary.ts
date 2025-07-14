@@ -13,6 +13,7 @@ import { clusterPrompt } from "../ai/prompts/cluster";
 import { dedublicationPrompt } from "../ai/prompts/deduplication";
 import { summaryPrompt, Summary } from "../ai/prompts/summary";
 import { archiveStatistics, logStatistics, updateClusterStatistics } from "../statistics";
+import { isEmpty } from "../utils/isEmpty";
 
 export interface Group {
   id: number;
@@ -167,7 +168,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
           logger.error('Empty answer from ai for summary of %n posts', posts.length);
           continue;
         }
-        const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw).filter((sum: Summary) => !!sum.summary_detailed && !!sum.summary_short);
+        const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw).filter((sum: Summary) => !isEmpty(sum.summary_detailed) && !isEmpty(sum.summary_short));
 
         if (!summaryArr.length) {
           logger.error('Empty summary array for cluster %s', key);
