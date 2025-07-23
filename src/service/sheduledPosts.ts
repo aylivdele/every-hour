@@ -1,3 +1,4 @@
+import { error } from "console";
 import { client } from "..";
 import { subscribeToFileUpdate } from "../handlers/file";
 import { logger } from "../utils/logger";
@@ -44,7 +45,8 @@ export function shedulePost(post: SheduledPost) {
                                 id,
                             }
                         }
-                    });
+                    }).then(result => logger.info('Message send successfully for %s with audio %s: %s', post.cluster, post.mp3, JSON.stringify(result)),
+                        reason => logger.error('Message send error for %s with audio %s', post.cluster, post.mp3, reason));
                     return true;
                 });
             } else {
