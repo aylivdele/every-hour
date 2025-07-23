@@ -1,24 +1,18 @@
 import path from "path";
 import { textEntity$Input } from "tdlib-types";
 import { askAI, tts } from "../ai";
-import { CheckRequest } from "../ai/prompts";
-import { clusterPrompt } from "../ai/prompts/cluster";
-import { dedublicationPrompt } from "../ai/prompts/deduplication";
-import { summaryPrompt, Summary } from "../ai/prompts/summary";
 import { instructionsNews } from "../ai/prompts/tts";
 import { updateClusterStatistics, logStatistics, archiveStatistics } from "../statistics";
 import { toMskOffset, getDateIntervalString, getNumberString } from "../utils/date";
-import { isEmpty } from "../utils/isEmpty";
 import { parseJsonAnswer } from "../utils/json";
 import { logger } from "../utils/logger";
 import { clearMP3Dir, writeMp3 } from "../utils/mp3";
-import { PostCluster, SheduledPost } from "../utils/post";
 import { managedGroups, gatherUnreadMessages } from "./summary";
 import { config } from "../configuration";
 import fs from 'fs';
-import { timeout } from "../utils/timeout";
 import { client } from "..";
 import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
+import { shedulePost } from "./sheduledPosts";
 
 export const postAllInOneSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
   
@@ -29,6 +23,9 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
     const startDate = new Date(force ? (toDate ?? Date.now()) : Date.now());
     const currentDate = toMskOffset(startDate);
     currentDate.setTime(currentDate.getTime() + fiveMinutes);
+
+    const publishDate = new Date(startDate);
+    publishDate.setHours(publishDate.getHours() + 1, 0, 1, 1);
 
 
     let postInterval = config.postInterval;
@@ -63,38 +60,6 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
       return unreadMessages;
     })).then(result => result.flat());
 
-    // let checkRetries = 0;
-    // let checkResult: CheckResult;
-    // const history: Array<string> = [];
-    // let clusterUserPrompt = JSON.stringify(messages.map(message => ({id: message.id, text: message.text})));
-
-    // while (checkRetries < config.checkRetries) {
-    //   let aiAnswer = await askAI(clusterPrompt, clusterUserPrompt, ...history);
-
-    //   if (!aiAnswer) {
-    //     logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
-    //     return;
-    //   }
-    //   history.push(clusterUserPrompt, aiAnswer);
-    //   clusters = parseJsonAnswer(aiAnswer);
-    //   const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
-    //     const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
-    //     return [entry[0], posts]
-    //   }));
-    //   const checkResultRaw = await askAI(checkPrompt, JSON.stringify(clustersWithText));
-    //   if (!checkResultRaw) {
-    //     logger.error('Empty answer from ai for clusterization check');
-    //     return;
-    //   }
-    //   checkResult = parseJsonAnswer(checkResultRaw);
-    //   if (!(checkResult.wrongTopic.length /* || checkResult.dublicates.length || checkResult.notNews.length*/)) {
-    //     checkRetries = 100;
-    //   } else {
-    //     clusterUserPrompt = getRetryClusterPrompt(checkResult);
-    //   }
-    //   checkRetries++;
-    // }
-
     let aiAnswer = await askAI(allInOnePrompt(maxCountOfNews), JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))), !force);
 
     logger.info('All in one AI answer: %s', aiAnswer);
@@ -103,7 +68,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
       return;
     }
     let summaryClusters: ClusterSummary = parseJsonAnswer(aiAnswer);
-    const sheduledPosts: Array<SheduledPost> = [];
+    clearMP3Dir();
 
     for (const key in summaryClusters) {
       try {
@@ -139,18 +104,20 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
         });
 
 
-        let mp3: ArrayBuffer | undefined = undefined;
+        let mp3: string | undefined = undefined;
         if (force && summaryArr.length) {
-            const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_detailed}`).join('\n\n');
-            mp3 = await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer()));
-        } 
+            const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_short} ${summary.summary_detailed}`).join('\n\n');
+            const mp3File = await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer()));
+            mp3 = writeMp3(mp3File, `${key}_${Date.now()}.mp3`);
+        }
 
-        sheduledPosts.push({
+        shedulePost({
           cluster: key,
           targetChatId,
           text,
           entities,
-          mp3
+          mp3,
+          date: publishDate.getTime(),
         });
       } catch (error) {
         logger.error(`Error for ${key} cluster`, error);
@@ -171,52 +138,6 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
       }
     }
 
-    const publishDate = new Date(startDate);
-    publishDate.setHours(publishDate.getHours() + 1, 0, 1, 1);
-    
-    setTimeout(async () => {
-      clearMP3Dir();
-      for (const post of sheduledPosts) {
-        try {
-          logger.info('Sending sheduled post to ' + post.targetChatId);
-          if (post.mp3) {
-            const path = writeMp3(post.mp3, `${post.cluster}.mp3`);
-            await client.invoke({
-              _: 'sendMessage',
-              chat_id: post.targetChatId,
-              input_message_content: {
-                _: 'inputMessageVoiceNote',
-                caption: {
-                  _: 'formattedText',
-                  text: post.text,
-                  entities: post.entities || undefined
-                },
-                voice_note: {
-                  _: 'inputFileLocal',
-                  path
-                }
-              }
-            });
-          } else {
-            await client.invoke({
-              _: 'sendMessage',
-              chat_id: post.targetChatId,
-              input_message_content: {
-                _: 'inputMessageText',
-                text: {
-                  _: 'formattedText',
-                  text: post.text,
-                  entities: post.entities || undefined
-                }
-              }
-            });
-          }
-        } catch (reason) {
-          logger.error('Could not post sheduled message for %s', post.cluster, reason);
-        }
-      }
-    }, force ? 0 : (publishDate.getTime() - Date.now()));
-
     if (config.debugChatId && !force) {
       await client.invoke({
         _: 'sendMessage',
@@ -230,7 +151,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
 
 Результат полного цикла за один запрос(кол-во новостей): ${Object.entries(summaryClusters).map(([cluster, posts]) => `${cluster}: ${posts}`).join(', ')};
 
-Запланирована отправка выжимки для ${ sheduledPosts.length } каналов через ${(publishDate.getTime() - Date.now()) / 1000} секунд.`
+Запланирована отправка выжимки для ${ Object.values(summaryClusters).filter(news => news.length > 0).length } каналов через ${(publishDate.getTime() - Date.now()) / 1000} секунд.`
           }
         }
       });

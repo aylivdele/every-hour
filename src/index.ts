@@ -12,6 +12,8 @@ import { handleConnectionState } from './handlers/connectionState';
 import { postSummary } from './service/summary';
 import { logger } from './utils/logger';
 import { postAllInOneSummary } from './service/allInOneSummary';
+import path from 'path';
+import { handleUpdateFile } from './handlers/file';
 
 
 
@@ -69,6 +71,9 @@ client.on('update', async (update: Update) => {
     //   return;
     case 'updateConnectionState':
       addHandlerToQueue(handleConnectionState, update);
+      return;
+    case 'updateFile':
+      addHandlerToQueue(handleUpdateFile, update);
       return;
   }
 });

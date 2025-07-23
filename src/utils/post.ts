@@ -11,7 +11,8 @@ export type SheduledPost = {
     targetChatId: number;
     text: string;
     entities?: Array<textEntity$Input>;
-    mp3?: ArrayBuffer;
+    mp3?: string;
+    date: number;
 }
 
 export type PostCluster = {
