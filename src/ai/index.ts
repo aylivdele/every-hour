@@ -27,3 +27,12 @@ export function askAI(systemPrompt: string, userPrompt: string, ...history: stri
     },
   )
 }
+
+export function tts(instructions: string, text: string) {
+  return openai.audio.speech.create({
+    model: "gpt-4o-mini-tts",
+    voice: "ballad",
+    input: text,
+    instructions: instructions,
+  });
+}

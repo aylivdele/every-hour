@@ -18,3 +18,19 @@ export function getDateIntervalString(fromDate: Date, toDate: Date) {
 export function toMskOffset(date: Date) {
     return new Date(date.getTime() + date.getTimezoneOffset() * 60000 + (3 * 60 * 60 * 1000));
 }
+
+export function getNumberString(n: number): string {
+    switch (n) {
+        case 1:
+            return 'Первая';
+        case 2:
+            return 'Вторая';
+        case 3:
+            return 'Третья';
+        case 4:
+            return 'Четвертая';
+        case 5:
+            return 'Пятая';
+    }
+    return '';
+}

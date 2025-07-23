@@ -1,12 +1,12 @@
 import { logger } from "../utils/logger";
 import { client } from "..";
 import { config } from "../configuration";
-import { askAI } from "../ai";
+import { askAI, tts } from "../ai";
 import fs from 'fs';
 import path from "path";
 import { message, textEntity$Input } from "tdlib-types";
 import { CheckRequest } from "../ai/prompts";
-import { getDateIntervalString, toMskOffset } from "../utils/date";
+import { getDateIntervalString, getNumberString, toMskOffset } from "../utils/date";
 import { mapMessageToPost, Post, PostCluster, SheduledPost } from "../utils/post";
 import { parseJsonAnswer } from "../utils/json";
 import { clusterPrompt } from "../ai/prompts/cluster";
@@ -14,12 +14,20 @@ import { dedublicationPrompt } from "../ai/prompts/deduplication";
 import { summaryPrompt, Summary } from "../ai/prompts/summary";
 import { archiveStatistics, logStatistics, updateClusterStatistics } from "../statistics";
 import { isEmpty } from "../utils/isEmpty";
+import { instructionsNews } from "../ai/prompts/tts";
+import { clearMP3Dir, writeMp3 } from "../utils/mp3";
 
 export interface Group {
   id: number;
   title: string;
 }
+client.invoke({
+  _: 'sendMessage',
+  input_message_content: {
+    _: 'inputMessageVoiceNote',
 
+  }
+})
 export const managedGroups: Array<Group> = [];
 
 const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, time));
@@ -194,13 +202,18 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
             }
             return acc;
           }, []) ?? [];
-        })
+        });
+
+        const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_detailed}`).join('\n\n');
+
+        const mp3 =  force ? await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer())) : undefined;
 
         sheduledPosts.push({
           cluster: key,
           targetChatId,
           text,
-          entities
+          entities,
+          mp3
         });
       } catch (error) {
         logger.error(`Error for ${key} cluster`, error);
@@ -225,20 +238,41 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
     publishDate.setHours(publishDate.getHours() + 1, 0, 1, 1);
     
     setTimeout(async () => {
+      clearMP3Dir();
       for (const post of sheduledPosts) {
         logger.info('Sending sheduled post to ' + post.targetChatId);
-        await client.invoke({
-          _: 'sendMessage',
-          chat_id: post.targetChatId,
-          input_message_content: {
-            _: 'inputMessageText',
-            text: {
-              _: 'formattedText',
-              text: post.text,
-              entities: post.entities || undefined
+        if (post.mp3) {
+          const path = await writeMp3(post.mp3, `${post.cluster}.mp3`);
+          await client.invoke({
+            _: 'sendMessage',
+            chat_id: post.targetChatId,
+            input_message_content: {
+              _: 'inputMessageVoiceNote',
+              caption: {
+                _: 'formattedText',
+                text: post.text,
+                entities: post.entities || undefined
+              },
+              voice_note: {
+                _: 'inputFileLocal',
+                path
+              }
             }
-          }
-        });
+          });
+        } else {
+          await client.invoke({
+            _: 'sendMessage',
+            chat_id: post.targetChatId,
+            input_message_content: {
+              _: 'inputMessageText',
+              text: {
+                _: 'formattedText',
+                text: post.text,
+                entities: post.entities || undefined
+              }
+            }
+          });
+        }
       }
     }, force ? 0 : (publishDate.getTime() - Date.now()));
 
