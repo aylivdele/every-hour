@@ -197,16 +197,17 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
           }, []) ?? [];
         });
 
-        const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_detailed}`).join('\n\n');
+        // const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_detailed}`).join('\n\n');
 
-        const mp3 =  force ? await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer())) : undefined;
+        // const mp3 =  force ? await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer())) : undefined;
 
         sheduledPosts.push({
           cluster: key,
           targetChatId,
           text,
           entities,
-          mp3
+          mp3: undefined,
+          date: 0,
         });
       } catch (error) {
         logger.error(`Error for ${key} cluster`, error);
@@ -231,42 +232,21 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
     publishDate.setHours(publishDate.getHours() + 1, 0, 1, 1);
     
     setTimeout(async () => {
-      clearMP3Dir();
       for (const post of sheduledPosts) {
         try {
           logger.info('Sending sheduled post to ' + post.targetChatId);
-          if (post.mp3) {
-            const path = writeMp3(post.mp3, `${post.cluster}.mp3`);
-            await client.invoke({
-              _: 'sendMessage',
-              chat_id: post.targetChatId,
-              input_message_content: {
-                _: 'inputMessageVoiceNote',
-                caption: {
-                  _: 'formattedText',
-                  text: post.text,
-                  entities: post.entities || undefined
-                },
-                voice_note: {
-                  _: 'inputFileLocal',
-                  path
-                }
+          await client.invoke({
+            _: 'sendMessage',
+            chat_id: post.targetChatId,
+            input_message_content: {
+              _: 'inputMessageText',
+              text: {
+                _: 'formattedText',
+                text: post.text,
+                entities: post.entities || undefined
               }
-            });
-          } else {
-            await client.invoke({
-              _: 'sendMessage',
-              chat_id: post.targetChatId,
-              input_message_content: {
-                _: 'inputMessageText',
-                text: {
-                  _: 'formattedText',
-                  text: post.text,
-                  entities: post.entities || undefined
-                }
-              }
-            });
-          }
+            }
+          });
         } catch (reason) {
           logger.error('Could not post sheduled message for %s', post.cluster, reason);
         }
