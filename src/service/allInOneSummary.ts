@@ -106,9 +106,11 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
 
         let mp3: string | undefined = undefined;
         if (force && summaryArr.length) {
-            const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_short} ${summary.summary_detailed}`).join('\n\n');
-            const mp3File = await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer()));
-            mp3 = writeMp3(mp3File, `${key}_${Date.now()}.mp3`);
+          const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_short} ${summary.summary_detailed}`).join('\n\n');
+          const mp3File = await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer()));
+          const fileName = `${Date.now()}.mp3`;
+          logger.info(`${key} => ${fileName}`);
+          mp3 = writeMp3(mp3File, fileName);
         }
 
         shedulePost({
