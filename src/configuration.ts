@@ -26,6 +26,8 @@ interface Config {
   toDate?: number;
   debugChatId?: number;
   debugThreadId?: number;
+  aiVoice: string;
+  aiTtsModel: string;
 }
 
 export let config: Config;
@@ -55,6 +57,8 @@ export function reloadConfig() {
   const toDate = process.env.TO_DATE;
   const debugChatId = process.env.DEBUG_CHAT;
   const debugThreadId = process.env.DEBUG_THREAD;
+  const aiVoice = process.env.AI_VOICE || 'sage';
+  const aiTtsModel = process.env.AI_TTS_MODEL || 'gpt-4o-mini-tts';
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;
@@ -170,7 +174,9 @@ export function reloadConfig() {
     fromDate: fromDateNumber,
     toDate: toDateNumber,
     debugChatId: debugChatIdNumber,
-    debugThreadId: debugThreadIdNumber
+    debugThreadId: debugThreadIdNumber,
+    aiVoice,
+    aiTtsModel
   }
 }
 

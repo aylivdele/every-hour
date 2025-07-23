@@ -1,31 +1,26 @@
-import { logger } from "../utils/logger";
-import { client } from "..";
-import { config } from "../configuration";
-import { askAI, tts } from "../ai";
-import fs from 'fs';
 import path from "path";
-import { message, textEntity$Input } from "tdlib-types";
+import { textEntity$Input } from "tdlib-types";
+import { askAI, tts } from "../ai";
 import { CheckRequest } from "../ai/prompts";
-import { getDateIntervalString, getNumberString, toMskOffset } from "../utils/date";
-import { mapMessageToPost, Post, PostCluster, SheduledPost } from "../utils/post";
-import { parseJsonAnswer } from "../utils/json";
 import { clusterPrompt } from "../ai/prompts/cluster";
 import { dedublicationPrompt } from "../ai/prompts/deduplication";
 import { summaryPrompt, Summary } from "../ai/prompts/summary";
-import { archiveStatistics, logStatistics, updateClusterStatistics } from "../statistics";
-import { isEmpty } from "../utils/isEmpty";
 import { instructionsNews } from "../ai/prompts/tts";
+import { updateClusterStatistics, logStatistics, archiveStatistics } from "../statistics";
+import { toMskOffset, getDateIntervalString, getNumberString } from "../utils/date";
+import { isEmpty } from "../utils/isEmpty";
+import { parseJsonAnswer } from "../utils/json";
+import { logger } from "../utils/logger";
 import { clearMP3Dir, writeMp3 } from "../utils/mp3";
+import { PostCluster, SheduledPost } from "../utils/post";
+import { managedGroups, gatherUnreadMessages } from "./summary";
+import { config } from "../configuration";
+import fs from 'fs';
 import { timeout } from "../utils/timeout";
+import { client } from "..";
+import { ClusterSummary } from "../ai/prompts/allInOne";
 
-export interface Group {
-  id: number;
-  title: string;
-}
-
-export const managedGroups: Array<Group> = [];
-
-export const postSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
+export const postAllInOneSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
   
   try {
     logger.info('Managed groups state: %s', JSON.stringify(managedGroups));
@@ -102,81 +97,22 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
 
     let aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))), !force);
 
-    logger.info('Clusterization AI answer: %s', aiAnswer);
+    logger.info('All in one AI answer: %s', aiAnswer);
     if (!aiAnswer) {
-      logger.error('Empty answer from ai for clusterization of %n messages', messages.length);
+      logger.error('Empty answer from ai for "all in one" of %n messages', messages.length);
       return;
     }
-    let clusters: PostCluster = parseJsonAnswer(aiAnswer);
-    const clustersWithText: CheckRequest = Object.fromEntries(Object.entries(clusters).map(entry => {
-      const posts = entry[1].map(id => messages.find(message => message.id === id)).filter(message => !!message);
-      return [entry[0], posts]
-    }));
-    const deduplicationAnswerRaw = await askAI(dedublicationPrompt, JSON.stringify(clustersWithText), !force);
-  
-    logger.info('Deduplication AI answer: %s', deduplicationAnswerRaw);
-    if (!deduplicationAnswerRaw) {
-      logger.error('Empty answer from ai for dedublication');
-      return;
-    }
-    const deduplicatedClusters: PostCluster = parseJsonAnswer(deduplicationAnswerRaw);
-
+    let summaryClusters: ClusterSummary = parseJsonAnswer(aiAnswer);
     const sheduledPosts: Array<SheduledPost> = [];
 
-    fromDateSeconds = (fromDateSeconds * 1000) + fiveMinutes;
-    const clusterSummary: {[cluster: string]: number} = {};
-
-    for (const key in deduplicatedClusters) {
+    for (const key in summaryClusters) {
       try {
         const targetChatId = config.targetChats[key];
         if (targetChatId === undefined) {
-          logger.warn('Target chat for "%s" not specified', key);
-          continue;
+            logger.warn('Target chat for "%s" not specified', key);
+            continue;
         }
-        // removeFromArray(clusters[key], checkResult!.notNews);
-        // for (const dublicate of checkResult!.dublicates) {
-        //   if (dublicate.length > 1) {
-        //     removeFromArray(clusters[key], dublicate.slice(1))
-        //   }
-        // }
-        const posts = messages.filter(msg => deduplicatedClusters[key].includes(msg.id)).map(message => ({id: message.id, text: message.text}));
-        let summaryRaw = null;
-        let success = false;
-        let retries = 0;
-
-        if (posts.length === 0) {
-          continue;
-        }
-
-        while (!success && retries < 5) {
-          if (retries > 0) {
-            logger.info('Retrying summary request in 1 minute');
-            await timeout(60 * 1000);
-          }
-          const {newSuccess, newSummaryRaw} = await askAI(summaryPrompt(maxCountOfNews), JSON.stringify(posts), !force)
-            .then(answer => ({newSummaryRaw: answer, newSuccess: true}))
-            .catch(async reason => {
-              logger.error('Error on summary ai request', reason);
-              return ({ newSummaryRaw: null, newSuccess: false });
-            })
-            .finally(() => retries++);
-          success = newSuccess;
-          summaryRaw = newSummaryRaw;
-          logger.info('Summary AI answer: %s', summaryRaw);
-        }
-
-        if (!summaryRaw) {
-          logger.error('Empty answer from ai for summary of %n posts', posts.length);
-          continue;
-        }
-        const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw).filter((sum: Summary) => !isEmpty(sum.summary_detailed) && !isEmpty(sum.summary_short));
-
-        if (!summaryArr.length) {
-          logger.error('Empty summary array for cluster %s', key);
-          continue;
-        }
-        clusterSummary[key] = summaryArr.length;
-
+        const summaryArr = summaryClusters[key];
         let fromDate = toMskOffset(new Date(fromDateSeconds));
 
         let text = `🕐 Главное за ${ getDateIntervalString(fromDate, currentDate)}`;
@@ -284,11 +220,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
             _: 'formattedText',
             text: `Собрано ${messages.length} постов;
 
-Результат кластеризации: ${Object.entries(clusters).map(([cluster, posts]) => `${cluster}: ${posts.length}`).join(', ')};
-
-Результат дедупликации: ${Object.entries(deduplicatedClusters).map(([cluster, posts]) => `${cluster}: ${posts.length}`).join(', ')};
-
-Результат выжимки(кол-во новостей): ${Object.entries(clusterSummary).map(([cluster, posts]) => `${cluster}: ${posts}`).join(', ')};
+Результат полного цикла за один запрос(кол-во новостей): ${Object.entries(summaryClusters).map(([cluster, posts]) => `${cluster}: ${posts}`).join(', ')};
 
 Запланирована отправка выжимки для ${ sheduledPosts.length } каналов через ${(publishDate.getTime() - Date.now()) / 1000} секунд.`
           }
@@ -296,7 +228,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
       });
     }
     if (!force) {
-      const statistics = updateClusterStatistics(clusterSummary, 1);
+        const statistics = updateClusterStatistics(Object.fromEntries(Object.entries(summaryClusters).map(([cluster, posts]) => ([cluster, posts.length]))), 1);
       if (isLastForToday) {
         await logStatistics(statistics);
         archiveStatistics();
@@ -321,83 +253,3 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
     throw error;
   } 
 };
-
-async function loadChatHistory(chatId: number, fromDate: number, limitPerChat: number = 10, toDate?: number) {
-  // await client.invoke({
-  //   _: 'openChat',
-  //   chat_id: chatId
-  // });
-
-  const arr: Array<message> = [];
-  let offset = 0;
-  let reachedDate = false;
-  let lastMessage: message | undefined;
-
-  while (arr.length < limitPerChat) {
-    const messages = await client.invoke({
-      _: 'getChatHistory',
-      chat_id: chatId,
-      from_message_id: lastMessage?.id ?? 0,
-      limit: limitPerChat - arr.length,
-      offset: 0
-    }).then(messages => {
-      return messages.messages.filter(msg => !!msg?.id);
-    });
-
-    for (const msg of messages) {
-      if (!!msg?.id) {
-        if (msg.date > fromDate && (!toDate || toDate > msg.date)) {
-          if (!arr.some(am => am.id === msg.id)) {
-            arr.push(msg);   
-          }
-        } else {
-          if (msg.date <= fromDate) {
-            reachedDate = true;
-          }
-        }
-      }
-      if (!lastMessage || msg!.date < (lastMessage?.date || Number.MAX_SAFE_INTEGER) || msg!.id < lastMessage?.id) {
-        lastMessage = msg!;
-      }
-    }
-    if (reachedDate) {
-      break;
-    }
-  }
-
-  const posts: Array<Post> = arr.map(mapMessageToPost).filter(post => post !== undefined);
-      
-  await client.invoke({
-    _: 'viewMessages',
-    chat_id: chatId,
-    message_ids: arr.map(msg => msg?.id).filter(id => id != undefined),
-    source: {
-      _: 'messageSourceChatHistory',
-    },
-    force_read: true,
-  });
-
-  return posts;
-}
-
-export async function gatherUnreadMessages(fromDate: number, folderId: number, limitPerChat?: number, toDate?: number): Promise<Post[]> {
-  const chats = await client.invoke({
-    _: 'getChats',
-    chat_list: {
-      _: 'chatListFolder',
-      chat_folder_id: folderId,
-    },
-    limit: 50
-  }).then(chats => (chats.chat_ids));
-
-  if (!chats) {
-    return Promise.reject(`Folder with id=${folderId} not found`);
-  }
-
-  const result: Array<Post> = [];
-
-  for (const chat of chats) {
-    result.push(...(await loadChatHistory(chat, fromDate, limitPerChat, toDate)));
-  }
-  return result;
-}

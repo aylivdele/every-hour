@@ -5,13 +5,13 @@ import { logger } from "./logger";
 
 const mp3Dir = path.join(path.dirname(require.main?.filename ?? __filename), '../db/mp3');
 
-export async function writeMp3(mp3: ArrayBuffer, name: string): Promise<string> {
+export function writeMp3(mp3: ArrayBuffer, name: string): string {
     if (!fs.existsSync(mp3Dir)) {
-        await fs.promises.mkdir(mp3Dir, {recursive: true});
+        fs.mkdirSync(mp3Dir, {recursive: true});
     }
     const file = path.join(mp3Dir, name);
     const buffer = Buffer.from(mp3);
-    await fs.promises.writeFile(file, buffer);
+    fs.writeFileSync(file, buffer);
     return file;
 }
 

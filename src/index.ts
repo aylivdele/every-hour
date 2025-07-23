@@ -90,5 +90,6 @@ setTimeout(() => {
 
 
 if (config.postDebug) {
+  logger.info('Sheduling force post');
   setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
 }
