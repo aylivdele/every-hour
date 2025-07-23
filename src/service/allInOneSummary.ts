@@ -151,7 +151,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
             _: 'formattedText',
             text: `Собрано ${messages.length} постов;
 
-Результат полного цикла за один запрос(кол-во новостей): ${Object.entries(summaryClusters).map(([cluster, posts]) => `${cluster}: ${posts}`).join(', ')};
+Результат полного цикла за один запрос(кол-во новостей): ${Object.entries(summaryClusters).map(([cluster, news]) => `${cluster}: ${news.length}`).join(', ')};
 
 Запланирована отправка выжимки для ${ Object.values(summaryClusters).filter(news => news.length > 0).length } каналов через ${(publishDate.getTime() - Date.now()) / 1000} секунд.`
           }
