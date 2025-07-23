@@ -21,13 +21,7 @@ export interface Group {
   id: number;
   title: string;
 }
-client.invoke({
-  _: 'sendMessage',
-  input_message_content: {
-    _: 'inputMessageVoiceNote',
 
-  }
-})
 export const managedGroups: Array<Group> = [];
 
 const timeout = (time: number) => new Promise(resolve => setTimeout(resolve, time));
