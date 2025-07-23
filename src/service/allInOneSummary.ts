@@ -107,12 +107,17 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
 
     for (const key in summaryClusters) {
       try {
+        
         const targetChatId = config.targetChats[key];
         if (targetChatId === undefined) {
             logger.warn('Target chat for "%s" not specified', key);
             continue;
         }
         const summaryArr = summaryClusters[key];
+        if (summaryArr.length === 0) {
+            continue;
+        }
+        
         let fromDate = toMskOffset(new Date(fromDateSeconds));
 
         let text = `🕐 Главное за ${ getDateIntervalString(fromDate, currentDate)}`;
@@ -133,9 +138,12 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
           }, []) ?? [];
         });
 
-        const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_detailed}`).join('\n\n');
 
-        const mp3 =  force ? await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer())) : undefined;
+        let mp3: ArrayBuffer | undefined = undefined;
+        if (force && summaryArr.length) {
+            const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_detailed}`).join('\n\n');
+            mp3 = await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer()));
+        } 
 
         sheduledPosts.push({
           cluster: key,
