@@ -18,7 +18,7 @@ import { config } from "../configuration";
 import fs from 'fs';
 import { timeout } from "../utils/timeout";
 import { client } from "..";
-import { ClusterSummary } from "../ai/prompts/allInOne";
+import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
 
 export const postAllInOneSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
   
@@ -95,7 +95,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
     //   checkRetries++;
     // }
 
-    let aiAnswer = await askAI(clusterPrompt, JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))), !force);
+    let aiAnswer = await askAI(allInOnePrompt(maxCountOfNews), JSON.stringify(messages.map(message => ({id: message.id, text: message.text}))), !force);
 
     logger.info('All in one AI answer: %s', aiAnswer);
     if (!aiAnswer) {

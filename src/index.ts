@@ -11,6 +11,7 @@ import { handleChatRemovedFromList } from './handlers/chatRemovedFromList';
 import { handleConnectionState } from './handlers/connectionState';
 import { postSummary } from './service/summary';
 import { logger } from './utils/logger';
+import { postAllInOneSummary } from './service/allInOneSummary';
 
 
 
@@ -91,5 +92,5 @@ setTimeout(() => {
 
 if (config.postDebug) {
   logger.info('Sheduling force post');
-  setTimeout(() => postSummary(true, config.fromDate, config.toDate), 60 * 1000);
+  setTimeout(() => postAllInOneSummary(true, config.fromDate, config.toDate), 60 * 1000);
 }
