@@ -13,6 +13,7 @@ import fs from 'fs';
 import { client } from "..";
 import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
 import { shedulePost } from "./sheduledPosts";
+import { addDot } from './../utils/addDot';
 
 export const postAllInOneSummary = async (force?: boolean, fromDate?: number, toDate?: number) => {
   
@@ -86,9 +87,9 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
         let fromDate = toMskOffset(new Date(fromDateSeconds));
 
         let text = `🕐 Главное за ${ getDateIntervalString(fromDate, currentDate)}`;
-        text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${summary.summary_short}`, `${text}\n\n🔹 Коротко:`);
+        text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${addDot(summary.summary_short)}`, `${text}\n\n🔹 Коротко:`);
         text += '\n\n📌 Подробности:';
-        text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${summary.summary_detailed}`, text);
+        text = summaryArr.reduce((t, summary, index) => t + `\n\n${index + 1}. ${summary.emoji} ${addDot(summary.summary_detailed)}`, text);
 
         const entities: Array<textEntity$Input> = summaryArr.flatMap(({id}) => {
           const post = messages.find(message => message.id === id);
@@ -106,7 +107,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
 
         let voiceFile: string | undefined = undefined;
         if (summaryArr.length) {
-          const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_short} ${summary.summary_detailed}`).join('\n\n');
+          const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${addDot(summary.summary_short)} ${addDot(summary.summary_detailed)}`).join('\n\n');
           const voice = await tts(ttsText);
           const fileName = `${Date.now()}.ogg`;
           logger.info(`${key} => ${fileName}`);
