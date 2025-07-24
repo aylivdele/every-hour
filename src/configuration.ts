@@ -61,10 +61,10 @@ export function reloadConfig() {
   const toDate = process.env.TO_DATE;
   const debugChatId = process.env.DEBUG_CHAT;
   const debugThreadId = process.env.DEBUG_THREAD;
-  const aiVoice = process.env.AI_VOICE || 'marina';
+  const aiVoice = process.env.AI_TTS_VOICE || 'marina';
   const aiTtsModel = process.env.AI_TTS_MODEL || 'gpt-4o-mini-tts';
-  const aiTtsEmotion = process.env.AT_TTS_EMOTION;
-  const aiTtsSpeed = process.env.AT_TTS_SPEED;
+  const aiTtsEmotion = process.env.AI_TTS_EMOTION;
+  const aiTtsSpeed = process.env.AI_TTS_SPEED;
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;

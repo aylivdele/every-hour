@@ -46,7 +46,8 @@ export function tts(text: string): Promise<ArrayBuffer> {
   if (config.aiTtsEmotion) {
     formData.append('emotion', config.aiTtsEmotion);
   }
-  // formData.append('emotion', 'friendly');
+
+  // formData.append('format', 'mp3');
 
   const headers = {
     Authorization: `Api-Key ${config.yaApiKey}`,
