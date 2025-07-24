@@ -2,7 +2,7 @@ import path from 'path';
 import winston from 'winston';
 import { config } from '../configuration';
 
-const pathToLogs = config.logDir ?? path.resolve( __dirname, '../logs');
+const pathToLogs = config.logDir ?? path.join(path.dirname(require.main?.filename ?? __filename), '../logs');
 
 const myFormat = winston.format.printf((args) => {
   const text = `${args.timestamp} ${args.level}: ${args.message}`;

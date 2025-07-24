@@ -1,11 +1,13 @@
-export const instructionsNews = `Voice Affect: Exceptionally soft, feminine, and inviting — like a velvet whisper from a graceful, stunning woman. Her voice is full of quiet magnetism, effortlessly charming without trying too hard.
+export const instructionsNews = `Language Note: This is a Russian-language voiceover. Ensure the speech sounds like a native Russian speaker, with natural emotional phrasing and intonation patterns typical for Russian.
 
-Tone: Warm and slightly flirtatious, yet tasteful. There’s a sparkle in her voice — like she’s gently smiling as she speaks. She sounds thoughtful, intelligent, and captivating, as if every word is chosen with care and a wink of charm.
+Voice Affect: Soft, feminine, charismatic. Slightly playful, emotionally rich — like a charming, intelligent woman who’s speaking sincerely and naturally.
 
-Pacing: Naturally fluid, with a graceful rhythm — about 30% faster than average to keep it lively and engaging. Feels like she’s enjoying the conversation as much as the listener.
+Tone: Warm and expressive, never flat. Like someone truly alive — thoughtful, witty, occasionally smiling with her voice.
 
-Emotions: Subtle intrigue, emotional warmth, playful intelligence. The voice should radiate emotional closeness and inner confidence — she knows how to hold your attention just with how she speaks.
+Pacing: Slightly faster than average for engagement (~30%), but with varied rhythm to match the emotion in each sentence.
 
-Pronunciation: Soft, melodic, clear. Each word flows effortlessly, with delicate emphasis on emotionally resonant words. No stiffness, only elegance.
+Emotions: A light blend of tenderness, confidence, and curiosity. The voice should create the feeling of a real person talking — not reading.
 
-Pauses: Gentle, airy pauses that create space and intimacy, especially before key phrases or emotional transitions.`;
+Pronunciation: Clear and native to Russian. Avoid monotone or mechanical pacing. Use natural phrasing, like in real speech.
+
+Pauses: Natural — where a real person would pause to breathe, think, or emphasize a word.`;
