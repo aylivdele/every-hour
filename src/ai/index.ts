@@ -40,7 +40,12 @@ export function tts(text: string): Promise<ArrayBuffer> {
   formData.append('voice', config.aiVoice);
   formData.append('text', text);
   formData.append('lang', 'ru-RU');
-  formData.append('speed', '1.25');
+  if (config.aiTtsSpeed) {
+    formData.append('speed', config.aiTtsSpeed);
+  }
+  if (config.aiTtsEmotion) {
+    formData.append('emotion', config.aiTtsEmotion);
+  }
   // formData.append('emotion', 'friendly');
 
   const headers = {
