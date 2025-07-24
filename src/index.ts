@@ -92,8 +92,8 @@ if (startTime < Date.now()) {
 }
 
 setTimeout(() => {
-  setInterval(postSummary, config.postInterval);
-  postSummary();
+  setInterval(postAllInOneSummary, config.postInterval);
+  postAllInOneSummary();
 }, startTime - Date.now());
 
 
