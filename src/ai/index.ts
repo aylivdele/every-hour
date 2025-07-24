@@ -5,6 +5,7 @@ import { updateTokenStatistics } from '../statistics'
 import { logger } from '../utils/logger'
 import FormData from 'form-data';
 import axios from 'axios';
+import { instructionsNews } from './prompts/tts'
 
 const openai = new OpenAI({
   apiKey: config.networkToken,
@@ -34,6 +35,16 @@ export function askAI(systemPrompt: string, userPrompt: string, saveStats?: bool
   )
 }
 
+export function ttsOpenai(text: string, voice: string) {
+  return openai.audio.speech.create({
+    model: "tts-1-hd",
+    voice: voice,
+    input: text,
+    instructions: instructionsNews,
+    response_format: "mp3",
+  }).then(response => response.arrayBuffer());
+}
+
 export function tts(text: string): Promise<ArrayBuffer> {  
   const formData = new FormData();
 
@@ -61,3 +72,4 @@ export function tts(text: string): Promise<ArrayBuffer> {
     })
     .then(response => response.data);
 }
+

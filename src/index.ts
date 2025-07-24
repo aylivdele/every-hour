@@ -15,7 +15,7 @@ import { postAllInOneSummary } from './service/allInOneSummary';
 import path from 'path';
 import { handleUpdateFile, subscribeToFileUpdate } from './handlers/file';
 import { writeVoiceFile } from './utils/voice';
-import { tts } from './ai';
+import { tts, ttsOpenai } from './ai';
 
 
 
@@ -102,12 +102,20 @@ if (config.postDebug) {
   setTimeout(() => postAllInOneSummary(true, config.fromDate, config.toDate), 60 * 1000);
 }
 
-// tts(`Первая новость:
-// Бастрыкин инициирует дело против судьи.
-// Председатель Следственного комитета России Александр Бастрыкин подал ходатайство о возбуждении уголовного дела в отношении судьи Альберта Тришкина за причинение вреда здоровью средней тяжести. Это заявление стало темой обсуждения на повестке дня ВККС РФ.
+(async () => {
+  if (process.env.GEN_VOICES !== 'true') {
+    return;
+  }
+  for (let voice of ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']) {
+    logger.info(voice);
+    await ttsOpenai(`Первая новость:
+Бастрыкин инициирует дело против судьи.
+Председатель Следственного комитета России Александр Бастрыкин подал ходатайство о возбуждении уголовного дела в отношении судьи Альберта Тришкина за причинение вреда здоровью средней тяжести. Это заявление стало темой обсуждения на повестке дня ВККС РФ.
 
-// Вторая новость:
-// Удар ВС РФ по украинским позициям.
-// Вооруженные силы России произвели удар по пункту временной дислокации украинских войск в Чугуеве Харьковской области, по данным Министерства обороны России, в результате которого было уничтожено до 50 солдат ВСУ.`)
-// .then(buffer => writeVoiceFile(buffer, 'alena_good_1.25.mp3'))
-// .catch(reason => logger.error('Error', reason));
+Вторая новость:
+Удар ВС РФ по украинским позициям.
+Вооруженные силы России произвели удар по пункту временной дислокации украинских войск в Чугуеве Харьковской области, по данным Министерства обороны России, в результате которого было уничтожено до 50 солдат ВСУ.`, voice)
+      .then(buffer => writeVoiceFile(buffer, `${voice}.mp3`))
+      .catch(reason => logger.error('Error', reason));
+  }
+})()
