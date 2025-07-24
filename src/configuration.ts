@@ -28,6 +28,7 @@ interface Config {
   debugThreadId?: number;
   aiVoice: string;
   aiTtsModel: string;
+  yaApiKey: string;
 }
 
 export let config: Config;
@@ -43,6 +44,7 @@ export function reloadConfig() {
   const parseFolderPrefix = process.env.PARSE_FOLDER_PREFIX;
   const targetChats = process.env.TARGET_CHATS;
   const checkRetries = process.env.CHECK_RETRIES;
+  const yaApiKey = process.env.YA_API_KEY;
 
   const tdDatabaseDir = process.env.TD_DATABASE_DIR;
   const tdFilesDir = process.env.TD_FILES_DIR;
@@ -57,7 +59,7 @@ export function reloadConfig() {
   const toDate = process.env.TO_DATE;
   const debugChatId = process.env.DEBUG_CHAT;
   const debugThreadId = process.env.DEBUG_THREAD;
-  const aiVoice = process.env.AI_VOICE || 'sage';
+  const aiVoice = process.env.AI_VOICE || 'marina';
   const aiTtsModel = process.env.AI_TTS_MODEL || 'gpt-4o-mini-tts';
 
   let postIntervalNumber: number = 3600000;
@@ -85,6 +87,10 @@ export function reloadConfig() {
 
   if (!parseFolderPrefix) {
     throw new Error("Parse folder prefix not found");
+  }
+
+  if (!yaApiKey) {
+    throw new Error('Yandex api key not specified');
   }
 
   if (targetChats) {
@@ -176,7 +182,8 @@ export function reloadConfig() {
     debugChatId: debugChatIdNumber,
     debugThreadId: debugThreadIdNumber,
     aiVoice,
-    aiTtsModel
+    aiTtsModel,
+    yaApiKey
   }
 }
 

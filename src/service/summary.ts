@@ -15,7 +15,7 @@ import { summaryPrompt, Summary } from "../ai/prompts/summary";
 import { archiveStatistics, logStatistics, updateClusterStatistics } from "../statistics";
 import { isEmpty } from "../utils/isEmpty";
 import { instructionsNews } from "../ai/prompts/tts";
-import { clearMP3Dir, writeMp3 } from "../utils/mp3";
+import { clearVoiceDir, writeVoiceFile } from "../utils/voice";
 import { timeout } from "../utils/timeout";
 
 export interface Group {
@@ -206,7 +206,7 @@ export const postSummary = async (force?: boolean, fromDate?: number, toDate?: n
           targetChatId,
           text,
           entities,
-          mp3: undefined,
+          voiceFile: undefined,
           date: 0,
         });
       } catch (error) {

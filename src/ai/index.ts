@@ -1,9 +1,10 @@
-import type { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
 import { config } from '../configuration'
 import OpenAI from 'openai'
 import { EasyInputMessage } from 'openai/resources/responses/responses.mjs'
 import { updateTokenStatistics } from '../statistics'
 import { logger } from '../utils/logger'
+import FormData from 'form-data';
+import axios from 'axios';
 
 const openai = new OpenAI({
   apiKey: config.networkToken,
@@ -33,11 +34,24 @@ export function askAI(systemPrompt: string, userPrompt: string, saveStats?: bool
   )
 }
 
-export function tts(instructions: string, text: string) {
-  return openai.audio.speech.create({
-    model: config.aiTtsModel,
-    voice: config.aiVoice,
-    input: text,
-    instructions: instructions,
-  });
+export function tts(text: string): Promise<ArrayBuffer> {  
+  const formData = new FormData();
+
+  formData.append('voice', config.aiVoice);
+  formData.append('text', text);
+  formData.append('lang', 'ru-RU');
+  formData.append('speed', '1.25');
+  // formData.append('emotion', 'friendly');
+
+  const headers = {
+    Authorization: `Api-Key ${config.yaApiKey}`,
+    ...formData.getHeaders(),
+  };
+
+  return axios
+    .post('https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize', formData, {
+      headers,
+      responseType: 'arraybuffer'
+    })
+    .then(response => response.data);
 }

@@ -6,7 +6,7 @@ import { updateClusterStatistics, logStatistics, archiveStatistics } from "../st
 import { toMskOffset, getDateIntervalString, getNumberString } from "../utils/date";
 import { parseJsonAnswer } from "../utils/json";
 import { logger } from "../utils/logger";
-import { clearMP3Dir, writeMp3 } from "../utils/mp3";
+import { clearVoiceDir, writeVoiceFile } from "../utils/voice";
 import { managedGroups, gatherUnreadMessages } from "./summary";
 import { config } from "../configuration";
 import fs from 'fs';
@@ -68,7 +68,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
       return;
     }
     let summaryClusters: ClusterSummary = parseJsonAnswer(aiAnswer);
-    clearMP3Dir();
+    clearVoiceDir();
 
     for (const key in summaryClusters) {
       try {
@@ -104,13 +104,13 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
         });
 
 
-        let mp3: string | undefined = undefined;
+        let voiceFile: string | undefined = undefined;
         if (summaryArr.length) {
           const ttsText = summaryArr.map((summary, index) => `${getNumberString(index + 1)} новость: ${summary.summary_short} ${summary.summary_detailed}`).join('\n\n');
-          const mp3File = await (tts(instructionsNews, ttsText).then(response => response.arrayBuffer()));
-          const fileName = `${Date.now()}.mp3`;
+          const voice = await tts(ttsText);
+          const fileName = `${Date.now()}.ogg`;
           logger.info(`${key} => ${fileName}`);
-          mp3 = writeMp3(mp3File, fileName);
+          voiceFile = writeVoiceFile(voice, fileName);
         }
 
         shedulePost({
@@ -118,7 +118,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
           targetChatId,
           text,
           entities,
-          mp3,
+          voiceFile: voiceFile,
           date: publishDate.getTime(),
         });
       } catch (error) {

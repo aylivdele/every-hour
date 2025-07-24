@@ -11,7 +11,7 @@ export type SheduledPost = {
     targetChatId: number;
     text: string;
     entities?: Array<textEntity$Input>;
-    mp3?: string;
+    voiceFile?: string;
     date: number;
 }
 
