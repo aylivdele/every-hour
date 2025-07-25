@@ -31,6 +31,8 @@ interface Config {
   yaApiKey: string;
   aiTtsEmotion?: string;
   aiTtsSpeed?: string;
+  aiTtsApiVersion: string;
+  aiTtsProvider: string;
 }
 
 export let config: Config;
@@ -65,6 +67,8 @@ export function reloadConfig() {
   const aiTtsModel = process.env.AI_TTS_MODEL || 'gpt-4o-mini-tts';
   const aiTtsEmotion = process.env.AI_TTS_EMOTION;
   const aiTtsSpeed = process.env.AI_TTS_SPEED;
+  const aiTtsVersion = process.env.AI_TTS_API_VERSION || 'v3';
+  const aiTtsProvider = process.env.AI_TTS_PROVIDER || 'yandex';
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;
@@ -189,7 +193,9 @@ export function reloadConfig() {
     aiTtsModel,
     yaApiKey,
     aiTtsEmotion,
-    aiTtsSpeed
+    aiTtsSpeed,
+    aiTtsApiVersion: aiTtsVersion,
+    aiTtsProvider
   }
 }
 

@@ -15,7 +15,7 @@ import { postAllInOneSummary } from './service/allInOneSummary';
 import path from 'path';
 import { handleUpdateFile, subscribeToFileUpdate } from './handlers/file';
 import { writeVoiceFile } from './utils/voice';
-import { tts, ttsOpenai } from './ai';
+import { tts, ttsOpenai, ttsYandex } from './ai';
 
 
 
@@ -102,20 +102,16 @@ if (config.postDebug) {
   setTimeout(() => postAllInOneSummary(true, config.fromDate, config.toDate), 60 * 1000);
 }
 
-(async () => {
-  if (process.env.GEN_VOICES !== 'true') {
-    return;
-  }
-  for (let voice of ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']) {
-    logger.info(voice);
-    await ttsOpenai(`Первая новость:
-Бастрыкин инициирует дело против судьи.
-Председатель Следственного комитета России Александр Бастрыкин подал ходатайство о возбуждении уголовного дела в отношении судьи Альберта Тришкина за причинение вреда здоровью средней тяжести. Это заявление стало темой обсуждения на повестке дня ВККС РФ.
+// (async () => {
+//   if (process.env.GEN_VOICES !== 'true') {
+//     return;
+//   }
+//   logger.info('generating voice');
+//   ttsYandex(`Первая новость:
+// ФСБ возобновила экспорт нефти из Казахстана через КТК. ФСБ России начала выдавать разрешения иностранным танкерам на заход в порты Чёрного моря, что позволило восстановить экспорт казахстанской нефти по Каспийскому трубопроводному консорциуму после почти суточной остановки.
 
-Вторая новость:
-Удар ВС РФ по украинским позициям.
-Вооруженные силы России произвели удар по пункту временной дислокации украинских войск в Чугуеве Харьковской области, по данным Министерства обороны России, в результате которого было уничтожено до 50 солдат ВСУ.`, voice)
-      .then(buffer => writeVoiceFile(buffer, `${voice}.mp3`))
-      .catch(reason => logger.error('Error', reason));
-  }
-})()
+// Вторая новость: Пошлины Трампа на Китай ударили по американским производителям игрушек. Импортные пошлины на китайские товары вынуждают Hasbro и Mattel снижать затраты: упрощать компоненты наборов, сокращать их число и продавать без батареек. Около 80 % игрушек этих компаний в США импортируется из КНР.`)
+//     .then(buffer => writeVoiceFile(buffer, `v3.ogg`))
+//     .then(path => logger.info('create new file %s', path))
+//     .catch(reason => logger.error('Could not create voice', reason));
+// })()

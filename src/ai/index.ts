@@ -6,6 +6,7 @@ import { logger } from '../utils/logger'
 import FormData from 'form-data';
 import axios from 'axios';
 import { instructionsNews } from './prompts/tts'
+import { mergeOggBuffers, writeVoiceFile } from '../utils/voice'
 
 const openai = new OpenAI({
   apiKey: config.networkToken,
@@ -35,41 +36,116 @@ export function askAI(systemPrompt: string, userPrompt: string, saveStats?: bool
   )
 }
 
-export function ttsOpenai(text: string, voice: string) {
+export function ttsOpenai(text: string): Promise<Buffer<ArrayBuffer>> {
   return openai.audio.speech.create({
     model: "tts-1-hd",
-    voice: voice,
+    voice: config.aiVoice,
     input: text,
     instructions: instructionsNews,
     response_format: "mp3",
-  }).then(response => response.arrayBuffer());
+  }).then(response => response.arrayBuffer())
+  .then(buffer => Buffer.from(buffer));
 }
 
-export function tts(text: string): Promise<ArrayBuffer> {  
-  const formData = new FormData();
-
-  formData.append('voice', config.aiVoice);
-  formData.append('text', text);
-  formData.append('lang', 'ru-RU');
-  if (config.aiTtsSpeed) {
-    formData.append('speed', config.aiTtsSpeed);
+type v3Response = {
+  result: {
+    audioChunk: {
+      data: string;
+    }
+    textChunk: {
+      text: string;
+    },
+    startMs: string;
+    lengthMs: string;
   }
-  if (config.aiTtsEmotion) {
-    formData.append('emotion', config.aiTtsEmotion);
-  }
+}
 
-  // formData.append('format', 'mp3');
+export function ttsYandex(text: string): Promise<Buffer<ArrayBuffer>> {
+  let url;
+  let data;
 
-  const headers = {
+  let headers: {[key: string]: any} = {
     Authorization: `Api-Key ${config.yaApiKey}`,
-    ...formData.getHeaders(),
   };
 
+  if (config.aiTtsApiVersion === 'v1') {
+    url = 'https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize';
+    data = new FormData();
+
+    data.append('voice', config.aiVoice);
+    data.append('text', text);
+    data.append('lang', 'ru-RU');
+    if (config.aiTtsSpeed) {
+      data.append('speed', config.aiTtsSpeed);
+    }
+    if (config.aiTtsEmotion) {
+      data.append('emotion', config.aiTtsEmotion);
+    }
+    headers = {...headers, ...data.getHeaders()};
+
+    // formData.append('format', 'mp3');
+
+  } else if (config.aiTtsApiVersion === 'v3') {
+    url = 'https://tts.api.cloud.yandex.net/tts/v3/utteranceSynthesis';
+    headers = { 'Content-Type': 'application/json', ...headers };
+
+    const hints: any[] = [{
+      voice: config.aiVoice
+    }];
+    if (config.aiTtsSpeed) {
+      hints.push({ speed: config.aiTtsSpeed });
+    }
+    if (config.aiTtsEmotion) {
+      hints.push({ role: config.aiTtsEmotion });
+    }
+    
+    data = {
+      hints: hints,
+      unsafeMode: true,
+      text: text,
+      outputAudioSpec: {
+        containerAudio: {
+          containerAudioType: "OGG_OPUS"
+        }
+      }
+    }; 
+  } else {
+    throw new Error('Wrong yandex tts api version');
+  }
+
   return axios
-    .post('https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize', formData, {
+    .post(url, data, {
       headers,
       responseType: 'arraybuffer'
     })
-    .then(response => response.data);
+    .then(response => response.data)
+    .then(data => {
+      if (config.aiTtsApiVersion === 'v3') {
+        return parseChunkedResponse(new String(data));
+      }
+      return Buffer.from(data);
+    });
 }
 
+export function tts(text: string): Promise<Buffer<ArrayBuffer>> {
+  if (config.aiTtsProvider === 'openai') {
+    return ttsOpenai(text);
+  }
+  if (config.aiTtsProvider === 'yandex') {
+    return ttsYandex(text);
+  }
+  throw new Error('Unknown ai tts provider');
+}
+
+function parseChunkedResponse(data: String) {
+  const chunks: string[] = data
+  .split('\n').filter(chunk => !!chunk);
+
+  const parsedChunks = chunks.map(chunk => Buffer.from(
+    (JSON.parse(chunk) as v3Response).result.audioChunk.data, 
+    'base64'
+  ));
+  const date = Date.now();
+  // parsedChunks.forEach((chunk, index) => writeVoiceFile(chunk, `chunk_${index}_${date}.ogg`));
+  return mergeOggBuffers(parsedChunks);
+}
