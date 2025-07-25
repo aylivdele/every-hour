@@ -39,10 +39,10 @@ export function askAI(systemPrompt: string, userPrompt: string, saveStats?: bool
 export function ttsOpenai(text: string): Promise<Buffer<ArrayBuffer>> {
   return openai.audio.speech.create({
     model: "tts-1-hd",
-    voice: config.aiVoice,
+    voice: 'nova',
     input: text,
     instructions: instructionsNews,
-    response_format: "mp3",
+    response_format: "opus",
   }).then(response => response.arrayBuffer())
   .then(buffer => Buffer.from(buffer));
 }
