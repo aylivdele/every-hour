@@ -84,7 +84,7 @@ export const postAllInOneSummary = async (force?: boolean, fromDate?: number, to
             continue;
         }
         
-        let fromDate = toMskOffset(new Date(fromDateSeconds * 1000));
+        let fromDate = toMskOffset(new Date(fromDateSeconds * 1000 + fiveMinutes));
 
         let text = `🕐 Главное за ${ getDateIntervalString(fromDate, currentDate)}`;
         text = summaryArr.reduce((t, summary, index) => t + `\n${index + 1}. ${summary.emoji} ${addDot(summary.summary_short)}`, `${text}\n\n🔹 Коротко:`);
