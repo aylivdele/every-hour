@@ -1,0 +1,206 @@
+import { createCanvas, Image, loadImage, SKRSContext2D } from "@napi-rs/canvas";
+import fs from "fs";
+import { Summary } from "../ai/prompts/summary";
+import { registerFont } from "canvas";
+import path from "path";
+//@ts-ignore
+import emojiUnicode from "emoji-unicode";
+import { config } from "../configuration";
+import {
+  getDateTitleIntervalString,
+  getTimeIntervalString,
+} from "../utils/date";
+
+type Emojis = Record<string, Image>;
+
+const rootDir = path.resolve(path.dirname(__filename), "..", "..");
+const imagesDir = path.join(rootDir, "images");
+
+export enum Cluster {
+  "Политика" = "techno",
+  "Экономика" = "techno",
+  "Крипта" = "techno",
+  "Технологии" = "techno",
+  "Отношения" = "techno",
+  "Наука и космос" = "techno",
+  "AI и нейросети" = "techno",
+}
+
+registerFont(
+  path.join(rootDir, "./fonts/unbounded/static/Unbounded-Black.ttf"),
+  {
+    family: "Unbounded",
+  }
+);
+
+export type RenderPostImageProps = {
+  cluster: Cluster;
+  summary: Array<Omit<Summary, "id" | "summary_detailed">>;
+  fromDate: Date;
+  toDate: Date;
+};
+
+function loadEmojis(emojis: string[]): Promise<Emojis> {
+  return Promise.all(
+    emojis.map((emoji) => {
+      const emojiPath = path.join(
+        imagesDir,
+        "apple-emoji",
+        `${emojiUnicode(emoji).replaceAll(" ", "-").toLowerCase()}.png`
+      );
+      return loadImage(emojiPath).then((img) => [emoji, img]);
+    })
+  ).then((emojis) => Object.fromEntries(emojis));
+}
+
+function loadBackground({
+  summary,
+  cluster,
+}: Omit<RenderPostImageProps, "fromDate" | "toDate">) {
+  const longestText = summary.reduce(
+    (max, info) =>
+      max.length > info.summary_short.length ? max : info.summary_short,
+    ""
+  );
+  const canvas = createCanvas(2000, 100);
+  const ctx = canvas.getContext("2d");
+  ctx.font = "500 36px Inter";
+
+  const textMetrics = ctx.measureText(longestText);
+  const textWidth =
+    textMetrics.actualBoundingBoxLeft + textMetrics.actualBoundingBoxRight;
+
+  let imageWidth = 1100;
+  if (textWidth > 1300) {
+    imageWidth = 1700;
+  } else if (textWidth > 1200) {
+    imageWidth = 1600;
+  } else if (textWidth > 1100) {
+    imageWidth = 1500;
+  } else if (textWidth > 1000) {
+    imageWidth = 1400;
+  } else if (textWidth > 900) {
+    imageWidth = 1300;
+  } else if (textWidth > 800) {
+    imageWidth = 1200;
+  }
+  const backgroundDir = path.join(
+    imagesDir,
+    "backgrounds",
+    "glass" /*config.backgroundType*/,
+    `${cluster}-${imageWidth}.png`
+  );
+  console.log("Loading background: " + backgroundDir);
+  return loadImage(backgroundDir);
+}
+function drawTitle(
+  ctx: SKRSContext2D,
+  { fromDate, toDate, summary }: Omit<RenderPostImageProps, "cluster" | "">
+) {
+  const timeY = 200;
+  const X = 94;
+  const mainY = 300;
+
+  ctx.fillStyle = "#1d1d1dff";
+  ctx.font = '40px Unbounded';
+  ctx.fillText(getTimeIntervalString(fromDate, toDate), X, timeY);
+
+  ctx.font = '64px Unbounded';
+  ctx.fillText(
+    `Главное за ${getDateTitleIntervalString(fromDate, toDate)}`,
+    X,
+    mainY
+  );
+}
+
+function drawSummary(
+  ctx: SKRSContext2D,
+  summary: RenderPostImageProps["summary"],
+  emojis: Emojis
+) {
+  const startY = 376;
+  const startYemoji = 368;
+  const xEmoji = 94;
+  const xTitle = 160;
+
+  const incrementY = 100;
+  ctx.fillStyle = "#1d1d1dff";
+  ctx.font = "500 36px Inter";
+
+  const imageHeight = 52;
+
+  for (let i = 0; i < summary.length; i++) {
+    const emoji = emojis[summary[i].emoji];
+    const title = summary[i].summary_short;
+
+    ctx.drawImage(
+      emoji,
+      xEmoji,
+      startYemoji + incrementY * i,
+      imageHeight,
+      imageHeight
+    );
+
+    ctx.fillText(title, xTitle, startY + 34 + incrementY * i);
+  }
+}
+
+export function renderPostImage({
+  cluster,
+  summary,
+  fromDate,
+  toDate,
+}: RenderPostImageProps) {
+  return loadBackground({ cluster, summary }).then((background) =>
+    loadEmojis(summary.map(({ emoji }) => emoji))
+      .then((emojis) => ({ background, emojis }))
+      .then((images) => {
+        const canvas = createCanvas(
+          images.background.width,
+          images.background.height
+        );
+        const ctx = canvas.getContext("2d");
+
+        ctx.drawImage(images.background, 0, 0);
+
+        drawTitle(ctx, { summary, fromDate, toDate });
+
+        drawSummary(ctx, summary, images.emojis);
+
+        return canvas.toBuffer("image/png");
+      })
+  );
+}
+
+// renderPostImage({
+//   cluster: Cluster.Технологии,
+//   summary: [
+//     {
+//       emoji: "🚁",
+//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
+//     },
+//     {
+//       emoji: "🚁",
+//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
+//     },
+//     {
+//       emoji: "🚁",
+//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
+//     },
+//     {
+//       emoji: "🪙",
+//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
+//     },
+//     {
+//       emoji: "📈",
+//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
+//     },
+//   ],
+//   toDate: new Date(),
+//   fromDate: new Date(),
+// })
+//   .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
+//   .then(
+//     (result) => console.log("Successfully wrote image"),
+//     (reason) => console.error("Error", reason)
+//   );

@@ -33,13 +33,17 @@ interface Config {
   aiTtsSpeed?: string;
   aiTtsApiVersion: string;
   aiTtsProvider: string;
+  backgroundType: string;
 }
 
 export let config: Config;
 
 export function reloadConfig() {
-  const filePath = path.resolve(process.env.CONFIG_DIR ?? process.cwd(), '.env');
-  dotenv.config({override: true, path: filePath});
+  const filePath = path.resolve(
+    process.env.CONFIG_DIR ?? process.cwd(),
+    ".env"
+  );
+  dotenv.config({ override: true, path: filePath });
 
   const tgApiId = process.env.TG_API_ID;
   const tgApiHash = process.env.TG_API_HASH;
@@ -63,12 +67,13 @@ export function reloadConfig() {
   const toDate = process.env.TO_DATE;
   const debugChatId = process.env.DEBUG_CHAT;
   const debugThreadId = process.env.DEBUG_THREAD;
-  const aiVoice = process.env.AI_TTS_VOICE || 'marina';
-  const aiTtsModel = process.env.AI_TTS_MODEL || 'gpt-4o-mini-tts';
+  const aiVoice = process.env.AI_TTS_VOICE || "marina";
+  const aiTtsModel = process.env.AI_TTS_MODEL || "gpt-4o-mini-tts";
   const aiTtsEmotion = process.env.AI_TTS_EMOTION;
   const aiTtsSpeed = process.env.AI_TTS_SPEED;
-  const aiTtsVersion = process.env.AI_TTS_API_VERSION || 'v3';
-  const aiTtsProvider = process.env.AI_TTS_PROVIDER || 'yandex';
+  const aiTtsVersion = process.env.AI_TTS_API_VERSION || "v3";
+  const aiTtsProvider = process.env.AI_TTS_PROVIDER || "yandex";
+  const backgroundType = process.env.BACKGROUND_TYPE || "glass";
 
   let postIntervalNumber: number = 3600000;
   let postCountNumber: number | undefined = undefined;
@@ -79,7 +84,6 @@ export function reloadConfig() {
   let toDateNumber: number | undefined = undefined;
   let debugChatIdNumber: number | undefined = undefined;
   let debugThreadIdNumber: number | undefined = undefined;
-
 
   if (!tgApiId || !tgApiHash) {
     throw new Error("Api parameters not found");
@@ -98,14 +102,18 @@ export function reloadConfig() {
   }
 
   if (!yaApiKey) {
-    throw new Error('Yandex api key not specified');
+    throw new Error("Yandex api key not specified");
   }
 
   if (targetChats) {
-    for (const entry of targetChats.split(';')) {
-      const delimeter = entry.indexOf('=');
-      if (delimeter === -1 || delimeter === 0 || delimeter === (entry.length - 1)) {
-        throw new Error('Incorrect format of target chats configuration');
+    for (const entry of targetChats.split(";")) {
+      const delimeter = entry.indexOf("=");
+      if (
+        delimeter === -1 ||
+        delimeter === 0 ||
+        delimeter === entry.length - 1
+      ) {
+        throw new Error("Incorrect format of target chats configuration");
       }
       const id = Number.parseInt(entry.substring(delimeter + 1));
       if (Number.isNaN(id)) {
@@ -164,10 +172,10 @@ export function reloadConfig() {
     }
   }
 
-  if (postDebug?.toLowerCase() === 'true') {
+  if (postDebug?.toLowerCase() === "true") {
     postDebugBoolean = true;
   }
-  
+
   config = {
     tdDatabaseDir,
     tdFilesDir,
@@ -195,8 +203,9 @@ export function reloadConfig() {
     aiTtsEmotion,
     aiTtsSpeed,
     aiTtsApiVersion: aiTtsVersion,
-    aiTtsProvider
-  }
+    aiTtsProvider,
+    backgroundType,
+  };
 }
 
 reloadConfig();
