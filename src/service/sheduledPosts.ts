@@ -32,11 +32,22 @@ export function shedulePost(post: SheduledPost) {
                   },
                 };
             }
-            await client.invoke({
-              _: "sendMessage",
-              chat_id: post.targetChatId,
-              input_message_content: messageContent,
-            });
+            logger.info('Sending sheduled message to %d with %s content', post.targetChatId, messageContent._);
+
+            await client
+              .invoke({
+                _: "sendMessage",
+                chat_id: post.targetChatId,
+                input_message_content: messageContent,
+              })
+              .then(
+                (result) =>
+                  logger.info(
+                    "result of sending message: %s",
+                    JSON.stringify(result)
+                  ),
+                (reason) => logger.error("error when sending message: %s", JSON.stringify(reason))
+              );
 
             if (post.voiceFile) {
                 logger.info('Sending sheduled voice to ' + post.targetChatId);

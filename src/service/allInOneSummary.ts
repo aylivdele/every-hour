@@ -22,7 +22,7 @@ import { client } from "..";
 import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
 import { shedulePost } from "./sheduledPosts";
 import { addDot } from "./../utils/addDot";
-import { Cluster, renderPostImage, writePhotoFile } from "../canvas/canvas";
+import { clearPhotoDir, Cluster, renderPostImage, writePhotoFile } from "../canvas/canvas";
 
 export const postAllInOneSummary = async (
   force?: boolean,
@@ -104,6 +104,7 @@ export const postAllInOneSummary = async (
     }
     let summaryClusters: ClusterSummary = parseJsonAnswer(aiAnswer);
     clearVoiceDir();
+    clearPhotoDir();
 
     for (const key in summaryClusters) {
       try {
@@ -180,7 +181,7 @@ export const postAllInOneSummary = async (
           voiceFile = writeVoiceFile(voice, fileName);
 
           const photo = await renderPostImage({cluster: Cluster[key as keyof typeof Cluster], summary: summaryArr, fromDate, toDate: currentDate});
-          const photoName = `${Date.now}.png`;
+          const photoName = `${Date.now()}.png`;
           logger.info(`${key} => ${photoName}`);
           photoFile = writePhotoFile(photo, photoName);
         }
