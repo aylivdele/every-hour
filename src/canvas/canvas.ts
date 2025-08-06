@@ -17,6 +17,13 @@ type Emojis = Record<string, Image | undefined>;
 const rootDir = path.resolve(path.dirname(__filename), "..", "..");
 const imagesDir = path.join(rootDir, "images");
 
+const emojiData: { unified: string; non_qualified: string; image: string }[] =
+  JSON.parse(
+    fs
+      .readFileSync(path.join(imagesDir, "apple-emoji", "emoji.json"))
+      .toString("utf-8")
+  );
+
 export enum Cluster {
   "Политика" = "techno",
   "Экономика" = "techno",
@@ -27,15 +34,15 @@ export enum Cluster {
   "AI и нейросети" = "techno",
 }
 
-registerFont(
-  path.join(rootDir, "fonts", "unbounded", "static",  "Unbounded-Bold.ttf"),
-  {family: 'Unbounded', weight: '800'}
-);
+// registerFont(
+//   path.join(rootDir, "fonts", "unbounded", "static", "Unbounded-Bold.ttf"),
+//   { family: "Unbounded", weight: "800" }
+// );
 
-registerFont(
-  path.join(rootDir, "fonts", "unbounded", "static", "Unbounded-Regular.ttf"),
-  { family: "Unbounded", weight: "400" }
-);
+// registerFont(
+//   path.join(rootDir, "fonts", "unbounded", "static", "Unbounded-Regular.ttf"),
+//   { family: "Unbounded", weight: "400" }
+// );
 
 export type RenderPostImageProps = {
   cluster: Cluster;
@@ -47,11 +54,12 @@ export type RenderPostImageProps = {
 function loadEmojis(emojis: string[]): Promise<Emojis> {
   return Promise.all(
     emojis.map((emoji) => {
-      const emojiPath = path.join(
-        imagesDir,
-        "apple-emoji",
-        `${emojiUnicode(emoji).replaceAll(" ", "-").toLowerCase()}.png`
+      const unicode = emojiUnicode(emoji).replaceAll(" ", "-").toUpperCase();
+      const data = emojiData.find(
+        (e) => (e.non_qualified ?? e.unified) === unicode
       );
+      const imageName = data?.image ?? `${unicode.toLowerCase()}.png`;
+      const emojiPath = path.join(imagesDir, "apple-emoji", imageName);
       return loadImage(emojiPath)
         .then((img) => [emoji, img])
         .catch((reason) => {
@@ -77,8 +85,7 @@ function loadBackground({
   ctx.font = "500 36px Inter";
 
   const textMetrics = ctx.measureText(longestText);
-  const textWidth =
-    textMetrics.actualBoundingBoxLeft + textMetrics.actualBoundingBoxRight;
+  const textWidth = textMetrics.width;
 
   let imageWidth = 1100;
   if (textWidth > 1200) {
@@ -105,7 +112,7 @@ function loadBackground({
 }
 function drawTitle(
   ctx: SKRSContext2D,
-  { fromDate, toDate, summary }: Omit<RenderPostImageProps, "cluster" | "">
+  { fromDate, toDate, summary }: Omit<RenderPostImageProps, "cluster" | "id">
 ) {
   const timeY = 200;
   const X = 94;
