@@ -29,7 +29,7 @@ export enum Cluster {
   "Экономика" = "techno",
   "Крипта" = "techno",
   "Технологии" = "techno",
-  "Отношения" = "techno",
+  "Отношения и психология" = "techno",
   "Наука и космос" = "techno",
   "AI и нейросети" = "techno",
 }
