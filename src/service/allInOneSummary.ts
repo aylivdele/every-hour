@@ -191,7 +191,8 @@ export const postAllInOneSummary = async (
           targetChatId,
           text,
           entities,
-          voiceFile: voiceFile,
+          voiceFile,
+          photoFile,
           date: publishDate.getTime(),
         });
       } catch (error) {

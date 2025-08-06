@@ -1,6 +1,4 @@
-import { error } from "console";
 import { client } from "..";
-import { subscribeToFileUpdate } from "../handlers/file";
 import { logger } from "../utils/logger";
 import { SheduledPost } from "../utils/post";
 import { InputMessageContent$Input } from "tdlib-types";

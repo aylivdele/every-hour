@@ -12,7 +12,7 @@ import {
 } from "../utils/date";
 import { logger } from "../utils/logger";
 
-type Emojis = Record<string, Image>;
+type Emojis = Record<string, Image | undefined>;
 
 const rootDir = path.resolve(path.dirname(__filename), "..", "..");
 const imagesDir = path.join(rootDir, "images");
@@ -49,7 +49,12 @@ function loadEmojis(emojis: string[]): Promise<Emojis> {
         "apple-emoji",
         `${emojiUnicode(emoji).replaceAll(" ", "-").toLowerCase()}.png`
       );
-      return loadImage(emojiPath).then((img) => [emoji, img]);
+      return loadImage(emojiPath)
+        .then((img) => [emoji, img])
+        .catch((reason) => {
+          logger.error("Could not load emoji: %s %s", emoji, emojiPath, reason);
+          return [emoji, undefined];
+        });
     })
   ).then((emojis) => Object.fromEntries(emojis));
 }
@@ -134,13 +139,15 @@ function drawSummary(
     const emoji = emojis[summary[i].emoji];
     const title = summary[i].summary_short;
 
-    ctx.drawImage(
-      emoji,
-      xEmoji,
-      startYemoji + incrementY * i,
-      imageHeight,
-      imageHeight
-    );
+    if (emoji) {
+      ctx.drawImage(
+        emoji,
+        xEmoji,
+        startYemoji + incrementY * i,
+        imageHeight,
+        imageHeight
+      );
+    }
 
     ctx.fillText(title, xTitle, startY + 34 + incrementY * i);
   }
@@ -174,39 +181,42 @@ export function renderPostImage({
   );
 }
 
-const photoFilesDir = path.join(rootDir, 'db', 'photo');
+const photoFilesDir = path.join(rootDir, "db", "photo");
 
-export function writePhotoFile(photo: Buffer<ArrayBuffer>, name: string): string {
-    if (!fs.existsSync(photoFilesDir)) {
-        fs.mkdirSync(photoFilesDir, {recursive: true});
-    }
-    const file = path.join(photoFilesDir, name);
-    fs.writeFileSync(file, photo);
-    return file;
+export function writePhotoFile(
+  photo: Buffer<ArrayBuffer>,
+  name: string
+): string {
+  if (!fs.existsSync(photoFilesDir)) {
+    fs.mkdirSync(photoFilesDir, { recursive: true });
+  }
+  const file = path.join(photoFilesDir, name);
+  fs.writeFileSync(file, photo);
+  return file;
 }
 
 export function clearPhotoDir() {
-    try {
-        if (!fs.existsSync(photoFilesDir)) {
-            fs.mkdirSync(photoFilesDir, { recursive: true });
-            return;
-        }
-        const files = fs.readdirSync(photoFilesDir);
-
-        for (const file of files) {
-            const filePath = path.join(photoFilesDir, file);
-            const stats = fs.statSync(filePath);
-
-            if (stats.isFile()) {
-                fs.unlinkSync(filePath);
-            } else if (stats.isDirectory()) {
-                fs.rmSync(filePath, { recursive: true, force: true });
-            }
-        }
-        logger.info(`Directory '${photoFilesDir}' cleared successfully.`);
-    } catch (err) {
-        logger.error(`Error clearing directory '${photoFilesDir}':`, err);
+  try {
+    if (!fs.existsSync(photoFilesDir)) {
+      fs.mkdirSync(photoFilesDir, { recursive: true });
+      return;
     }
+    const files = fs.readdirSync(photoFilesDir);
+
+    for (const file of files) {
+      const filePath = path.join(photoFilesDir, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isFile()) {
+        fs.unlinkSync(filePath);
+      } else if (stats.isDirectory()) {
+        fs.rmSync(filePath, { recursive: true, force: true });
+      }
+    }
+    logger.info(`Directory '${photoFilesDir}' cleared successfully.`);
+  } catch (err) {
+    logger.error(`Error clearing directory '${photoFilesDir}':`, err);
+  }
 }
 
 // renderPostImage({
