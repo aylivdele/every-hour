@@ -27,13 +27,6 @@ export enum Cluster {
   "AI и нейросети" = "techno",
 }
 
-registerFont(
-  path.join(rootDir, "./fonts/unbounded/static/Unbounded-Black.ttf"),
-  {
-    family: "Unbounded",
-  }
-);
-
 export type RenderPostImageProps = {
   cluster: Cluster;
   summary: Array<Omit<Summary, "id" | "summary_detailed">>;
