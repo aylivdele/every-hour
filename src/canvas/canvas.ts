@@ -10,6 +10,7 @@ import {
   getDateTitleIntervalString,
   getTimeIntervalString,
 } from "../utils/date";
+import { logger } from "../utils/logger";
 
 type Emojis = Record<string, Image>;
 
@@ -102,10 +103,10 @@ function drawTitle(
   const mainY = 300;
 
   ctx.fillStyle = "#1d1d1dff";
-  ctx.font = '40px Unbounded';
+  ctx.font = "40px Unbounded";
   ctx.fillText(getTimeIntervalString(fromDate, toDate), X, timeY);
 
-  ctx.font = '64px Unbounded';
+  ctx.font = "600 64px Unbounded";
   ctx.fillText(
     `Главное за ${getDateTitleIntervalString(fromDate, toDate)}`,
     X,
@@ -159,6 +160,7 @@ export function renderPostImage({
           images.background.width,
           images.background.height
         );
+
         const ctx = canvas.getContext("2d");
 
         ctx.drawImage(images.background, 0, 0);
@@ -170,6 +172,41 @@ export function renderPostImage({
         return canvas.toBuffer("image/png");
       })
   );
+}
+
+const photoFilesDir = path.join(rootDir, 'db', 'photo');
+
+export function writePhotoFile(photo: Buffer<ArrayBuffer>, name: string): string {
+    if (!fs.existsSync(photoFilesDir)) {
+        fs.mkdirSync(photoFilesDir, {recursive: true});
+    }
+    const file = path.join(photoFilesDir, name);
+    fs.writeFileSync(file, photo);
+    return file;
+}
+
+export function clearPhotoDir() {
+    try {
+        if (!fs.existsSync(photoFilesDir)) {
+            fs.mkdirSync(photoFilesDir, { recursive: true });
+            return;
+        }
+        const files = fs.readdirSync(photoFilesDir);
+
+        for (const file of files) {
+            const filePath = path.join(photoFilesDir, file);
+            const stats = fs.statSync(filePath);
+
+            if (stats.isFile()) {
+                fs.unlinkSync(filePath);
+            } else if (stats.isDirectory()) {
+                fs.rmSync(filePath, { recursive: true, force: true });
+            }
+        }
+        logger.info(`Directory '${photoFilesDir}' cleared successfully.`);
+    } catch (err) {
+        logger.error(`Error clearing directory '${photoFilesDir}':`, err);
+    }
 }
 
 // renderPostImage({

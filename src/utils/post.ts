@@ -12,6 +12,7 @@ export type SheduledPost = {
     text: string;
     entities?: Array<textEntity$Input>;
     voiceFile?: string;
+    photoFile?: string;
     date: number;
 }
 

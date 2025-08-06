@@ -22,6 +22,7 @@ import { client } from "..";
 import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
 import { shedulePost } from "./sheduledPosts";
 import { addDot } from "./../utils/addDot";
+import { Cluster, renderPostImage, writePhotoFile } from "../canvas/canvas";
 
 export const postAllInOneSummary = async (
   force?: boolean,
@@ -163,6 +164,7 @@ export const postAllInOneSummary = async (
         );
 
         let voiceFile: string | undefined = undefined;
+        let photoFile: string | undefined = undefined;
         if (summaryArr.length) {
           const ttsText = summaryArr
             .map(
@@ -176,6 +178,11 @@ export const postAllInOneSummary = async (
           const fileName = `${Date.now()}.ogg`;
           logger.info(`${key} => ${fileName}`);
           voiceFile = writeVoiceFile(voice, fileName);
+
+          const photo = await renderPostImage({cluster: Cluster[key as keyof typeof Cluster], summary: summaryArr, fromDate, toDate: currentDate});
+          const photoName = `${Date.now}.png`;
+          logger.info(`${key} => ${photoName}`);
+          photoFile = writePhotoFile(photo, photoName);
         }
 
         shedulePost({
