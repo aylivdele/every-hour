@@ -7,3 +7,6 @@
 // archiveStatistics();
 
 // setTimeout(() => logStatistics(statistics), 10000);
+
+//@ts-ignore
+import emojiUnicode from "emoji-unicode";

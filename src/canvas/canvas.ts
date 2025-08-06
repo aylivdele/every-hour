@@ -27,6 +27,16 @@ export enum Cluster {
   "AI и нейросети" = "techno",
 }
 
+registerFont(
+  path.join(rootDir, "fonts", "unbounded", "static",  "Unbounded-Bold.ttf"),
+  {family: 'Unbounded', weight: '800'}
+);
+
+registerFont(
+  path.join(rootDir, "fonts", "unbounded", "static", "Unbounded-Regular.ttf"),
+  { family: "Unbounded", weight: "400" }
+);
+
 export type RenderPostImageProps = {
   cluster: Cluster;
   summary: Array<Omit<Summary, "id" | "summary_detailed">>;
@@ -46,6 +56,7 @@ function loadEmojis(emojis: string[]): Promise<Emojis> {
         .then((img) => [emoji, img])
         .catch((reason) => {
           logger.error("Could not load emoji: %s %s", emoji, emojiPath, reason);
+          // console.error(`"Could not load emoji: ${emoji} ${emojiPath}`, reason);
           return [emoji, undefined];
         });
     })
@@ -70,17 +81,17 @@ function loadBackground({
     textMetrics.actualBoundingBoxLeft + textMetrics.actualBoundingBoxRight;
 
   let imageWidth = 1100;
-  if (textWidth > 1300) {
+  if (textWidth > 1200) {
     imageWidth = 1700;
-  } else if (textWidth > 1200) {
-    imageWidth = 1600;
   } else if (textWidth > 1100) {
-    imageWidth = 1500;
+    imageWidth = 1600;
   } else if (textWidth > 1000) {
-    imageWidth = 1400;
+    imageWidth = 1500;
   } else if (textWidth > 900) {
-    imageWidth = 1300;
+    imageWidth = 1400;
   } else if (textWidth > 800) {
+    imageWidth = 1300;
+  } else if (textWidth > 700) {
     imageWidth = 1200;
   }
   const backgroundDir = path.join(
@@ -104,7 +115,7 @@ function drawTitle(
   ctx.font = "40px Unbounded";
   ctx.fillText(getTimeIntervalString(fromDate, toDate), X, timeY);
 
-  ctx.font = "600 64px Unbounded";
+  ctx.font = "800 64px Unbounded";
   ctx.fillText(
     `Главное за ${getDateTitleIntervalString(fromDate, toDate)}`,
     X,
@@ -212,35 +223,38 @@ export function clearPhotoDir() {
   }
 }
 
-// renderPostImage({
-//   cluster: Cluster.Технологии,
-//   summary: [
-//     {
-//       emoji: "🚁",
-//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
-//     },
-//     {
-//       emoji: "🚁",
-//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
-//     },
-//     {
-//       emoji: "🚁",
-//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
-//     },
-//     {
-//       emoji: "🪙",
-//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
-//     },
-//     {
-//       emoji: "📈",
-//       summary_short: "Lorem ipsum dolor sit amet, consectetur tincidunt.",
-//     },
-//   ],
-//   toDate: new Date(),
-//   fromDate: new Date(),
-// })
-//   .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
-//   .then(
-//     (result) => console.log("Successfully wrote image"),
-//     (reason) => console.error("Error", reason)
-//   );
+renderPostImage({
+  cluster: Cluster.Технологии,
+  summary: [
+    {
+      emoji: "🇵🇱",
+      summary_short: "Польша укрепит т армию и защиту восточного фланга НАТО",
+    },
+    {
+      emoji: "🏛",
+      summary_short:
+        "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
+    },
+    {
+      emoji: "🔒",
+      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+    },
+    {
+      emoji: "🤝",
+      summary_short:
+        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+    },
+    {
+      emoji: "🇺🇳",
+      summary_short:
+        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+    },
+  ],
+  toDate: new Date(),
+  fromDate: new Date(),
+})
+  .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
+  .then(
+    (result) => console.log("Successfully wrote image"),
+    (reason) => console.error("Error", reason)
+  );
