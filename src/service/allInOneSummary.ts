@@ -22,7 +22,12 @@ import { client } from "..";
 import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
 import { shedulePost } from "./sheduledPosts";
 import { addDot } from "./../utils/addDot";
-import { clearPhotoDir, Cluster, renderPostImage, writePhotoFile } from "../canvas/canvas";
+import {
+  clearPhotoDir,
+  Cluster,
+  renderPostImage,
+  writePhotoFile,
+} from "../canvas/canvas";
 
 export const postAllInOneSummary = async (
   force?: boolean,
@@ -122,25 +127,11 @@ export const postAllInOneSummary = async (
           new Date(fromDateSeconds * 1000 + fiveMinutes)
         );
 
-        let text = `🕐 Главное за ${getDateIntervalString(
-          fromDate,
-          currentDate
-        )}`;
-        text = summaryArr.reduce(
-          (t, summary, index) =>
-            t +
-            `\n${index + 1}. ${summary.emoji} ${addDot(summary.summary_short)}`,
-          `${text}\n\n🔹 Коротко:`
-        );
-        text += "\n\n📌 Подробности:";
-        text = summaryArr.reduce(
-          (t, summary, index) =>
-            t +
-            `\n\n${index + 1}. ${summary.emoji} ${addDot(
-              summary.summary_detailed
-            )}`,
-          text
-        );
+        let text = summaryArr
+          .map(
+            (summary) => `${summary.emoji} ${addDot(summary.summary_detailed)}`
+          )
+          .join("\n\n");
 
         const entities: Array<textEntity$Input> = summaryArr.flatMap(
           ({ id }) => {
@@ -180,7 +171,12 @@ export const postAllInOneSummary = async (
           logger.info(`${key} => ${fileName}`);
           voiceFile = writeVoiceFile(voice, fileName);
 
-          const photo = await renderPostImage({cluster: Cluster[key as keyof typeof Cluster], summary: summaryArr, fromDate, toDate: currentDate});
+          const photo = await renderPostImage({
+            cluster: Cluster[key as keyof typeof Cluster],
+            summary: summaryArr,
+            fromDate,
+            toDate: currentDate,
+          });
           const photoName = `${Date.now()}.png`;
           logger.info(`${key} => ${photoName}`);
           photoFile = writePhotoFile(photo, photoName);
