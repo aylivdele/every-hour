@@ -171,7 +171,7 @@ export const postAllInOneSummary = async (
             )} ${getTimeIntervalString(fromDate, currentDate)}` +
             summaryArr
               .map((summary) => addDot(summary.summary_tts))
-              .join("\n\nА ещё: ");
+              .join("\n\nsil<[1000]> Далее: ");
           const voice = await tts(ttsText);
           const fileName = `${Date.now()}.ogg`;
           logger.info(`${key} => ${fileName}`);
