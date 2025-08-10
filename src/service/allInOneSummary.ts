@@ -11,6 +11,8 @@ import {
   toMskOffset,
   getDateIntervalString,
   getNumberString,
+  getTimeIntervalString,
+  getDateTitleIntervalString,
 } from "../utils/date";
 import { parseJsonAnswer } from "../utils/json";
 import { logger } from "../utils/logger";
@@ -28,6 +30,7 @@ import {
   renderPostImage,
   writePhotoFile,
 } from "../canvas/canvas";
+import { mapCluster } from "../utils/mappers";
 
 export const postAllInOneSummary = async (
   force?: boolean,
@@ -129,7 +132,7 @@ export const postAllInOneSummary = async (
 
         let text = summaryArr
           .map(
-            (summary) => `${summary.emoji} ${addDot(summary.summary_detailed)}`
+            (summary) => `${summary.emoji} ${addDot(summary.summary_short)}\n${addDot(summary.summary_detailed)}`
           )
           .join("\n\n");
 
@@ -158,14 +161,14 @@ export const postAllInOneSummary = async (
         let voiceFile: string | undefined = undefined;
         let photoFile: string | undefined = undefined;
         if (summaryArr.length) {
-          const ttsText = summaryArr
+          const ttsText = `Главное в ${mapCluster(key)} за ${getDateTitleIntervalString(fromDate, currentDate)} ${getTimeIntervalString(fromDate, currentDate)}` + summaryArr
             .map(
-              (summary, index) =>
-                `${getNumberString(index + 1)} новость: ${addDot(
+              (summary) =>
+                `${addDot(
                   summary.summary_short
                 )} ${addDot(summary.summary_detailed)}`
             )
-            .join("\n\n");
+            .join("\n\nА ещё: ");
           const voice = await tts(ttsText);
           const fileName = `${Date.now()}.ogg`;
           logger.info(`${key} => ${fileName}`);

@@ -34,16 +34,6 @@ export enum Cluster {
   "AI и нейросети" = "techno",
 }
 
-// registerFont(
-//   path.join(rootDir, "fonts", "unbounded", "static", "Unbounded-Bold.ttf"),
-//   { family: "Unbounded", weight: "800" }
-// );
-
-// registerFont(
-//   path.join(rootDir, "fonts", "unbounded", "static", "Unbounded-Regular.ttf"),
-//   { family: "Unbounded", weight: "400" }
-// );
-
 export type RenderPostImageProps = {
   cluster: Cluster;
   summary: Array<Omit<Summary, "id" | "summary_detailed">>;
@@ -195,7 +185,7 @@ export function renderPostImage({
 const photoFilesDir = path.join(rootDir, "db", "photo");
 
 export function writePhotoFile(
-  photo: Buffer<ArrayBuffer>,
+  photo: Buffer<ArrayBufferLike>,
   name: string
 ): string {
   if (!fs.existsSync(photoFilesDir)) {
