@@ -132,7 +132,10 @@ export const postAllInOneSummary = async (
 
         let text = summaryArr
           .map(
-            (summary) => `${summary.emoji} ${addDot(summary.summary_short)}\n${addDot(summary.summary_detailed)}`
+            (summary) =>
+              `${summary.emoji} ${addDot(summary.summary_short)}\n${addDot(
+                summary.summary_detailed
+              )}`
           )
           .join("\n\n");
 
@@ -161,14 +164,14 @@ export const postAllInOneSummary = async (
         let voiceFile: string | undefined = undefined;
         let photoFile: string | undefined = undefined;
         if (summaryArr.length) {
-          const ttsText = `Главное в ${mapCluster(key)} за ${getDateTitleIntervalString(fromDate, currentDate)} ${getTimeIntervalString(fromDate, currentDate)}` + summaryArr
-            .map(
-              (summary) =>
-                `${addDot(
-                  summary.summary_short
-                )} ${addDot(summary.summary_detailed)}`
-            )
-            .join("\n\nА ещё: ");
+          const ttsText =
+            `Главное в ${mapCluster(key)} за ${getDateTitleIntervalString(
+              fromDate,
+              currentDate
+            )} ${getTimeIntervalString(fromDate, currentDate)}` +
+            summaryArr
+              .map((summary) => addDot(summary.summary_tts))
+              .join("\n\nА ещё: ");
           const voice = await tts(ttsText);
           const fileName = `${Date.now()}.ogg`;
           logger.info(`${key} => ${fileName}`);
