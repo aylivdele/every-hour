@@ -1,7 +1,6 @@
 import { createCanvas, Image, loadImage, SKRSContext2D } from "@napi-rs/canvas";
 import fs from "fs";
 import { Summary } from "../ai/prompts/summary";
-import { registerFont } from "canvas";
 import path from "path";
 //@ts-ignore
 import emojiUnicode from "emoji-unicode";
@@ -12,6 +11,14 @@ import {
 } from "../utils/date";
 import { logger } from "../utils/logger";
 
+// const logger = {
+//   info: (...args: any[]) => {
+//     console.log(...args);
+//   },
+//   error: (...args: any[]) => {
+//     console.error(...args);
+//   },
+// };
 type Emojis = Record<string, Image | undefined>;
 
 const rootDir = path.resolve(path.dirname(__filename), "..", "..");
@@ -36,7 +43,7 @@ export enum Cluster {
 
 export type RenderPostImageProps = {
   cluster: Cluster;
-  summary: Array<Omit<Summary, "id" | "summary_detailed">>;
+  summary: Array<Omit<Summary, "id" | "summary_detailed" | "summary_tts">>;
   fromDate: Date;
   toDate: Date;
 };
@@ -54,17 +61,17 @@ function loadEmojis(emojis: string[]): Promise<Emojis> {
         .then((img) => [emoji, img])
         .catch((reason) => {
           logger.error("Could not load emoji: %s %s", emoji, emojiPath, reason);
-          // console.error(`"Could not load emoji: ${emoji} ${emojiPath}`, reason);
           return [emoji, undefined];
         });
     })
   ).then((emojis) => Object.fromEntries(emojis));
 }
 
-function loadBackground({
+function chooseBackgroundWidth({
   summary,
-  cluster,
-}: Omit<RenderPostImageProps, "fromDate" | "toDate">) {
+}: Omit<RenderPostImageProps, "fromDate" | "toDate" | "cluster">) {
+  return 1100;
+
   const longestText = summary.reduce(
     (max, info) =>
       max.length > info.summary_short.length ? max : info.summary_short,
@@ -91,6 +98,14 @@ function loadBackground({
   } else if (textWidth > 700) {
     imageWidth = 1200;
   }
+  return imageWidth;
+}
+
+function loadBackground({
+  summary,
+  cluster,
+}: Omit<RenderPostImageProps, "fromDate" | "toDate">) {
+  const imageWidth = chooseBackgroundWidth({ summary });
   const backgroundDir = path.join(
     imagesDir,
     "backgrounds",
@@ -120,13 +135,26 @@ function drawTitle(
   );
 }
 
+function splitLine(line: string): string[] {
+  if (line.length <= 44) {
+    return [line];
+  }
+  const lastSpace = line.lastIndexOf(" ", 44);
+  const nextSpace = line.lastIndexOf(" ", lastSpace - 1);
+  if (lastSpace - nextSpace - 1 <= 3) {
+    const index = line.lastIndexOf(" ", nextSpace);
+    return [line.substring(0, index), line.substring(index + 1)];
+  }
+  return [line.substring(0, lastSpace), line.substring(lastSpace + 1)];
+}
+
 function drawSummary(
   ctx: SKRSContext2D,
   summary: RenderPostImageProps["summary"],
   emojis: Emojis
 ) {
-  const startY = 376;
-  const startYemoji = 368;
+  const startY = 360;
+  const startYemoji = 352;
   const xEmoji = 94;
   const xTitle = 160;
 
@@ -138,7 +166,7 @@ function drawSummary(
 
   for (let i = 0; i < summary.length; i++) {
     const emoji = emojis[summary[i].emoji];
-    const title = summary[i].summary_short;
+    const title = splitLine(summary[i].summary_short);
 
     if (emoji) {
       ctx.drawImage(
@@ -150,7 +178,13 @@ function drawSummary(
       );
     }
 
-    ctx.fillText(title, xTitle, startY + 34 + incrementY * i);
+    for (let j = 0; j < title.length; j++) {
+      ctx.fillText(
+        title[j],
+        xTitle,
+        startY + 34 + incrementY * i + (incrementY - 12) * 0.5 * j
+      );
+    }
   }
 }
 
@@ -220,38 +254,38 @@ export function clearPhotoDir() {
   }
 }
 
-// renderPostImage({
-//   cluster: Cluster.Технологии,
-//   summary: [
-//     {
-//       emoji: "🇵🇱",
-//       summary_short: "Польша укрепит т армию и защиту восточного фланга НАТО",
-//     },
-//     {
-//       emoji: "🏛",
-//       summary_short:
-//         "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
-//     },
-//     {
-//       emoji: "🔒",
-//       summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
-//     },
-//     {
-//       emoji: "🤝",
-//       summary_short:
-//         "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
-//     },
-//     {
-//       emoji: "🇺🇳",
-//       summary_short:
-//         "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
-//     },
-//   ],
-//   toDate: new Date(),
-//   fromDate: new Date(),
-// })
-//   .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
-//   .then(
-//     (result) => console.log("Successfully wrote image"),
-//     (reason) => console.error("Error", reason)
-//   );
+renderPostImage({
+  cluster: Cluster.Технологии,
+  summary: [
+    {
+      emoji: "🇵🇱",
+      summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
+    },
+    {
+      emoji: "🏛",
+      summary_short:
+        "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
+    },
+    {
+      emoji: "🔒",
+      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+    },
+    {
+      emoji: "🤝",
+      summary_short:
+        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+    },
+    {
+      emoji: "🇺🇳",
+      summary_short:
+        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+    },
+  ],
+  toDate: new Date(),
+  fromDate: new Date(),
+})
+  .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
+  .then(
+    (result) => console.log("Successfully wrote image"),
+    (reason) => console.error("Error", reason)
+  );

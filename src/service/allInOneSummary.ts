@@ -13,6 +13,7 @@ import {
   getNumberString,
   getTimeIntervalString,
   getDateTitleIntervalString,
+  getLocaleTimeIntervalString,
 } from "../utils/date";
 import { parseJsonAnswer } from "../utils/json";
 import { logger } from "../utils/logger";
@@ -160,6 +161,22 @@ export const postAllInOneSummary = async (
             );
           }
         );
+        entities.push(
+          ...summaryArr
+            .map((summary) => {
+              const start = text.indexOf(summary.summary_short);
+              if (start < 0) {
+                return undefined;
+              }
+              return {
+                _: "textEntity",
+                offset: start,
+                length: summary.summary_short.length,
+                type: { _: "textEntityTypeBold" },
+              } as textEntity$Input;
+            })
+            .filter((entity) => entity !== undefined)
+        );
 
         let voiceFile: string | undefined = undefined;
         let photoFile: string | undefined = undefined;
@@ -168,7 +185,7 @@ export const postAllInOneSummary = async (
             `Главное в ${mapCluster(key)} за ${getDateTitleIntervalString(
               fromDate,
               currentDate
-            )} ${getTimeIntervalString(fromDate, currentDate)}` +
+            )} ${getLocaleTimeIntervalString(fromDate, currentDate)}` +
             summaryArr
               .map((summary) => addDot(summary.summary_tts))
               .join("\n\nsil<[1000]> Далее: ");

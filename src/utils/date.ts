@@ -43,6 +43,46 @@ function getMonthString(
   return date.toLocaleString("ru", { month: length });
 }
 
+function getDateString(date: Date) {
+  return date.toLocaleString("ru", { day: '2-digit' });
+}
+
+function getHourString(date: Date) {
+  switch (date.getHours().toString()) {
+    case "08":
+      return "восьми";
+    case "09":
+      return "девяти";
+    case "10":
+      return "десяти";
+    case "11":
+      return "одинадцати";
+    case "12":
+      return "двенадцати";
+    case "13":
+      return "тринадцати";
+    case "14":
+      return "четырнадцати";
+    case "15":
+      return "пятнадцати";
+    case "16":
+      return "шестнадцати";
+    case "17":
+      return "семнадцати";
+    case "18":
+      return "восемнадцати";
+    case "19":
+      return "девятнадцати";
+    case "20":
+      return "двадцати";
+    case "21":
+      return "двадцати одного";
+    case "22":
+      return "двадцати двух";
+  }
+  return '';
+}
+
 export function getDateIntervalString(fromDate: Date, toDate: Date) {
   if (toDate.getHours() === 8) {
     return `ночь ${toDate.getDate()} ${getMonthString(toDate)}`;
@@ -64,6 +104,22 @@ export function getDateTitleIntervalString(fromDate: Date, toDate: Date) {
   }
   return `${toDate.getDate()} ${getMonthString(toDate, "long")}`;
 }
+
+export function getLocaleTimeIntervalString(fromDate: Date, toDate: Date) {
+  if (toDate.getHours() === 8) {
+    if (fromDate.getMonth() !== toDate.getMonth()) {
+      return `с ${getDateString(fromDate)} ${getMonthString(
+        fromDate, 'long'
+      )} до ${getDateString(toDate)} ${getMonthString(toDate, 'long')}`;
+    }
+    return `с ${fromDate.getDate()} до ${toDate.getDate()} ${getMonthString(
+      toDate,
+      "long"
+    )}`;
+  }
+  return `с ${getHourString(fromDate)} до ${getHourString(toDate)}`;
+}
+
 
 export function getTimeIntervalString(fromDate: Date, toDate: Date) {
   if (toDate.getHours() === 8) {
