@@ -162,7 +162,7 @@ function drawSummary(
   ctx.fillStyle = "#1d1d1dff";
   ctx.font = "500 36px Inter";
 
-  const imageHeight = 52;
+  const imageHeight = 42;
 
   for (let i = 0; i < summary.length; i++) {
     const emoji = emojis[summary[i].emoji];

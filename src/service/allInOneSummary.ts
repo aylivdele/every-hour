@@ -185,7 +185,10 @@ export const postAllInOneSummary = async (
             `Главное в ${mapCluster(key)} за ${getDateTitleIntervalString(
               fromDate,
               currentDate
-            )} ${getLocaleTimeIntervalString(fromDate, currentDate)}` +
+            )} ${getLocaleTimeIntervalString(
+              fromDate,
+              currentDate
+            )}\nsil<[800]>` +
             summaryArr
               .map((summary) => addDot(summary.summary_tts))
               .join("\n\nsil<[1000]> Далее: ");
