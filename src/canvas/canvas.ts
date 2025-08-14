@@ -153,13 +153,10 @@ function splitLine(
     if (lastSpace - nextSpace - 1 <= 3) {
       lastSpace = nextSpace;
     }
-    if (result.length === 0) {
-      result.push(lastLine.substring(0, lastSpace));
-    }
-    lastLine = lastLine.substring(lastSpace + 1);
-    result.push(lastLine);
+    result.push(lastLine.substring(0, lastSpace));
     lineNumber++;
   }
+  result.push(lastLine);
 
   return result;
 }
@@ -173,10 +170,13 @@ function drawSummary(
   const startYemoji = 360;
   const xEmoji = 94;
   const xTitle = 160;
+  let incrementY = 100;
+  const lineHeight = 42;
+  const imageHeight = 42;
 
   ctx.fillStyle = "#1d1d1dff";
   ctx.font = "500 32px Inter";
-  let incrementY = 100;
+
   let splitLength = 44;
   let maxLines = 2;
   if (summary.length <= 2) {
@@ -185,8 +185,6 @@ function drawSummary(
     splitLength = 30;
     maxLines = 3;
   }
-
-  const imageHeight = 42;
 
   for (let i = 0; i < summary.length; i++) {
     const emoji = emojis[summary[i].emoji];
@@ -206,7 +204,7 @@ function drawSummary(
       ctx.fillText(
         title[j],
         xTitle,
-        startY + 34 + incrementY * i + (incrementY - 12) * 0.5 * j
+        startY + 34 + incrementY * i + lineHeight * j
       );
     }
   }
