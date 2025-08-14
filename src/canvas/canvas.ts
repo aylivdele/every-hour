@@ -135,17 +135,33 @@ function drawTitle(
   );
 }
 
-function splitLine(line: string, splitLength: number): string[] {
+function splitLine(
+  line: string,
+  splitLength: number,
+  maxLines: number
+): string[] {
   if (line.length <= splitLength) {
     return [line];
   }
-  const lastSpace = line.lastIndexOf(" ", splitLength);
-  const nextSpace = line.lastIndexOf(" ", lastSpace - 1);
-  if (lastSpace - nextSpace - 1 <= 3) {
-    const index = line.lastIndexOf(" ", nextSpace);
-    return [line.substring(0, index), line.substring(index + 1)];
+  let lastLine = line;
+  let lineNumber = 1;
+  const result = [];
+
+  while (lastLine.length > splitLength && lineNumber < maxLines) {
+    let lastSpace = lastLine.lastIndexOf(" ", splitLength);
+    const nextSpace = lastLine.lastIndexOf(" ", lastSpace - 1);
+    if (lastSpace - nextSpace - 1 <= 3) {
+      lastSpace = nextSpace;
+    }
+    if (result.length === 0) {
+      result.push(lastLine.substring(0, lastSpace));
+    }
+    lastLine = lastLine.substring(lastSpace + 1);
+    result.push(lastLine);
+    lineNumber++;
   }
-  return [line.substring(0, lastSpace), line.substring(lastSpace + 1)];
+
+  return result;
 }
 
 function drawSummary(
@@ -162,17 +178,19 @@ function drawSummary(
   ctx.font = "500 32px Inter";
   let incrementY = 100;
   let splitLength = 44;
+  let maxLines = 2;
   if (summary.length <= 2) {
     incrementY = 250;
     ctx.font = "500 50px Inter";
     splitLength = 30;
+    maxLines = 3;
   }
 
   const imageHeight = 42;
 
   for (let i = 0; i < summary.length; i++) {
     const emoji = emojis[summary[i].emoji];
-    const title = splitLine(summary[i].summary_short, splitLength);
+    const title = splitLine(summary[i].summary_short, splitLength, maxLines);
 
     if (emoji) {
       ctx.drawImage(
@@ -260,38 +278,38 @@ export function clearPhotoDir() {
   }
 }
 
-// renderPostImage({
-//   cluster: Cluster.Технологии,
-//   summary: [
-//     {
-//       emoji: "🇵🇱",
-//       summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
-//     },
-//     {
-//       emoji: "🏛",
-//       summary_short:
-//         "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
-//     },
-//     {
-//       emoji: "🔒",
-//       summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
-//     },
-//     {
-//       emoji: "🤝",
-//       summary_short:
-//         "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
-//     },
-//     {
-//       emoji: "🇺🇳",
-//       summary_short:
-//         "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
-//     },
-//   ],
-//   toDate: new Date(),
-//   fromDate: new Date(),
-// })
-//   .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
-//   .then(
-//     (result) => console.log("Successfully wrote image"),
-//     (reason) => console.error("Error", reason)
-//   );
+renderPostImage({
+  cluster: Cluster.Технологии,
+  summary: [
+    {
+      emoji: "🇵🇱",
+      summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
+    },
+    {
+      emoji: "🏛",
+      summary_short:
+        "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
+    },
+    {
+      emoji: "🔒",
+      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+    },
+    {
+      emoji: "🤝",
+      summary_short:
+        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+    },
+    {
+      emoji: "🇺🇳",
+      summary_short:
+        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+    },
+  ],
+  toDate: new Date(),
+  fromDate: new Date(),
+})
+  .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
+  .then(
+    (result) => console.log("Successfully wrote image"),
+    (reason) => console.error("Error", reason)
+  );
