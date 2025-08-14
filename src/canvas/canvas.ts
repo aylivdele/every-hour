@@ -154,6 +154,7 @@ function splitLine(
       lastSpace = nextSpace;
     }
     result.push(lastLine.substring(0, lastSpace));
+    lastLine = lastLine.substring(lastSpace + 1);
     lineNumber++;
   }
   result.push(lastLine);
