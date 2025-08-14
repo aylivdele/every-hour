@@ -173,7 +173,7 @@ function drawSummary(
   const xTitle = 160;
   let incrementY = 100;
   let lineHeight = 42;
-  const imageHeight = 42;
+  let imageHeight = 42;
 
   ctx.fillStyle = "#1d1d1dff";
   ctx.font = "500 30px Inter";
@@ -183,6 +183,7 @@ function drawSummary(
   if (summary.length <= 2) {
     incrementY = 250;
     lineHeight = 50;
+    imageHeight = 50;
     ctx.font = "400 46px Inter";
     splitLength = 30;
     maxLines = 3;
