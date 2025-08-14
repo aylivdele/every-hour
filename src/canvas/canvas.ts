@@ -176,14 +176,14 @@ function drawSummary(
   const imageHeight = 42;
 
   ctx.fillStyle = "#1d1d1dff";
-  ctx.font = "500 32px Inter";
+  ctx.font = "500 30px Inter";
 
   let splitLength = 44;
   let maxLines = 2;
   if (summary.length <= 2) {
     incrementY = 250;
-    lineHeight = 60;
-    ctx.font = "400 50px Inter";
+    lineHeight = 50;
+    ctx.font = "400 46px Inter";
     splitLength = 30;
     maxLines = 3;
   }
