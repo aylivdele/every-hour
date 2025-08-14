@@ -172,7 +172,7 @@ function drawSummary(
   const xEmoji = 94;
   const xTitle = 160;
   let incrementY = 100;
-  const lineHeight = 42;
+  let lineHeight = 42;
   const imageHeight = 42;
 
   ctx.fillStyle = "#1d1d1dff";
@@ -182,7 +182,8 @@ function drawSummary(
   let maxLines = 2;
   if (summary.length <= 2) {
     incrementY = 250;
-    ctx.font = "500 50px Inter";
+    lineHeight = 60;
+    ctx.font = "400 50px Inter";
     splitLength = 30;
     maxLines = 3;
   }
