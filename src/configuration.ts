@@ -63,7 +63,7 @@ export function reloadConfig() {
   const postInterval = process.env.POST_INTERVAL;
   const postCount = process.env.POST_COUNT;
   const postDebug = process.env.POST_DEBUG;
-  const renderDebug = process.env.POST_DEBUG;
+  const renderDebug = process.env.RENDER_DEBUG;
   const networkModel = process.env.AI_MODEL;
   const fromDate = process.env.FROM_DATE;
   const toDate = process.env.TO_DATE;
