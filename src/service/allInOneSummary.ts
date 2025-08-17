@@ -22,7 +22,11 @@ import { managedGroups, gatherUnreadMessages } from "./summary";
 import { config } from "../configuration";
 import fs from "fs";
 import { client } from "..";
-import { allInOnePrompt, ClusterSummary } from "../ai/prompts/allInOne";
+import {
+  allInOnePrompt,
+  ClusterName,
+  ClusterSummary,
+} from "../ai/prompts/allInOne";
 import { shedulePost } from "./sheduledPosts";
 import { addDot } from "./../utils/addDot";
 import {
@@ -32,6 +36,7 @@ import {
   writePhotoFile,
 } from "../canvas/canvas";
 import { mapCluster } from "../utils/mappers";
+import { appendClusterPostSuffix } from "../utils/post";
 
 export const postAllInOneSummary = async (
   force?: boolean,
@@ -115,7 +120,9 @@ export const postAllInOneSummary = async (
     clearVoiceDir();
     clearPhotoDir();
 
-    for (const key in summaryClusters) {
+    const keys = Object.keys(summaryClusters) as ClusterName[];
+    for (let k = 0; k < keys.length; k++) {
+      const key: ClusterName = keys[k];
       try {
         const targetChatId = config.targetChats[key];
         if (targetChatId === undefined) {
@@ -161,6 +168,9 @@ export const postAllInOneSummary = async (
             );
           }
         );
+
+        text = appendClusterPostSuffix(key, text, entities);
+
         entities.push(
           ...summaryArr
             .map((summary) => {

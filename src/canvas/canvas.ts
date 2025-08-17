@@ -1,6 +1,6 @@
 import { createCanvas, Image, loadImage, SKRSContext2D } from "@napi-rs/canvas";
 import fs from "fs";
-import { Summary } from "../ai/prompts/summary";
+import { Summary } from "../ai/prompts/allInOne";
 import path from "path";
 //@ts-ignore
 import emojiUnicode from "emoji-unicode";
@@ -167,8 +167,8 @@ function drawSummary(
   summary: RenderPostImageProps["summary"],
   emojis: Emojis
 ) {
-  const startY = 360;
-  const startYemoji = 360;
+  let startY = 360;
+  let startYemoji = 360;
   const xEmoji = 94;
   const xTitle = 160;
   let incrementY = 100;
@@ -180,13 +180,15 @@ function drawSummary(
 
   let splitLength = 44;
   let maxLines = 2;
-  if (summary.length <= 2) {
-    incrementY = 250;
-    lineHeight = 50;
-    imageHeight = 50;
-    ctx.font = "400 46px Inter";
-    splitLength = 30;
-    maxLines = 3;
+  if (summary.length > 5) {
+    startY = 335;
+    startYemoji = 345;
+    incrementY = 65;
+    lineHeight = 30;
+    imageHeight = 30;
+    ctx.font = "500 24px Inter";
+    splitLength = 60;
+    maxLines = 2;
   }
 
   for (let i = 0; i < summary.length; i++) {
@@ -279,38 +281,54 @@ export function clearPhotoDir() {
   }
 }
 
-// renderPostImage({
-//   cluster: Cluster.Технологии,
-//   summary: [
-//     {
-//       emoji: "🇵🇱",
-//       summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
-//     },
-//     {
-//       emoji: "🏛",
-//       summary_short:
-//         "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
-//     },
-//     {
-//       emoji: "🔒",
-//       summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
-//     },
-//     {
-//       emoji: "🤝",
-//       summary_short:
-//         "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
-//     },
-//     {
-//       emoji: "🇺🇳",
-//       summary_short:
-//         "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
-//     },
-//   ],
-//   toDate: new Date(),
-//   fromDate: new Date(),
-// })
-//   .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
-//   .then(
-//     (result) => console.log("Successfully wrote image"),
-//     (reason) => console.error("Error", reason)
-//   );
+if (config.renderDebug) {
+renderPostImage({
+  cluster: Cluster.Технологии,
+  summary: [
+    {
+      emoji: "🇵🇱",
+      summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
+    },
+    {
+      emoji: "🏛",
+      summary_short:
+        "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
+    },
+    {
+      emoji: "🔒",
+      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+    },
+    {
+      emoji: "🤝",
+      summary_short:
+        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+    },
+    {
+      emoji: "🇺🇳",
+      summary_short:
+        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+    },
+    {
+      emoji: "🔒",
+      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+    },
+    {
+      emoji: "🤝",
+      summary_short:
+        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+    },
+    {
+      emoji: "🇺🇳",
+      summary_short:
+        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+    },
+  ],
+  toDate: new Date(),
+  fromDate: new Date(),
+})
+  .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
+  .then(
+    (result) => console.log("Successfully wrote image"),
+    (reason) => console.error("Error", reason)
+  );
+}

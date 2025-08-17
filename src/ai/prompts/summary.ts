@@ -45,11 +45,3 @@ JSON-массив объектов с постами, где каждый объ
 id берется из оригинального поста, никак не изменяясь.
 Не добавляй комментарии и пояснения — верни только JSON.
 `;
-
-export interface Summary {
-  id: number;
-  emoji: string;
-  summary_short: string;
-  summary_detailed: string;
-  summary_tts: string;
-}

@@ -11,7 +11,9 @@ import { mapMessageToPost, Post, PostCluster, SheduledPost } from "../utils/post
 import { parseJsonAnswer } from "../utils/json";
 import { clusterPrompt } from "../ai/prompts/cluster";
 import { dedublicationPrompt } from "../ai/prompts/deduplication";
-import { summaryPrompt, Summary } from "../ai/prompts/summary";
+import { summaryPrompt } from "../ai/prompts/summary";
+import { Summary } from "../ai/prompts/allInOne";
+
 import { archiveStatistics, logStatistics, updateClusterStatistics } from "../statistics";
 import { isEmpty } from "../utils/isEmpty";
 import { instructionsNews } from "../ai/prompts/tts";

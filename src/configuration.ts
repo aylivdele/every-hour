@@ -19,6 +19,7 @@ interface Config {
   postInterval: number;
   postCount?: number;
   postDebug: boolean;
+  renderDebug: boolean;
   parseFolderPrefix: string;
   targetChats: TargetChats;
   checkRetries: number;
@@ -62,6 +63,7 @@ export function reloadConfig() {
   const postInterval = process.env.POST_INTERVAL;
   const postCount = process.env.POST_COUNT;
   const postDebug = process.env.POST_DEBUG;
+  const renderDebug = process.env.POST_DEBUG;
   const networkModel = process.env.AI_MODEL;
   const fromDate = process.env.FROM_DATE;
   const toDate = process.env.TO_DATE;
@@ -79,6 +81,7 @@ export function reloadConfig() {
   let postCountNumber: number | undefined = undefined;
   let checkRetriesNumber: number = 3;
   let postDebugBoolean: boolean = false;
+  let renderDebugBoolean: boolean = false;
   const targetChatsObject: TargetChats = {};
   let fromDateNumber: number | undefined = undefined;
   let toDateNumber: number | undefined = undefined;
@@ -176,6 +179,10 @@ export function reloadConfig() {
     postDebugBoolean = true;
   }
 
+  if (renderDebug?.toLowerCase() === "true") {
+    renderDebugBoolean = true;
+  }
+
   config = {
     tdDatabaseDir,
     tdFilesDir,
@@ -189,6 +196,7 @@ export function reloadConfig() {
     postInterval: postIntervalNumber,
     postCount: postCountNumber,
     postDebug: postDebugBoolean,
+    renderDebug: renderDebugBoolean,
     parseFolderPrefix,
     targetChats: targetChatsObject,
     networkModel,
