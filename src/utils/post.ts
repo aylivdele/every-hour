@@ -142,8 +142,8 @@ export function appendClusterPostSuffix(
   if (!link) {
     return text;
   }
-  const suffix = `Каждый час ${ClusterSuffix[cluster]}`;
-  text = `${text} ${suffix}`;
+  const suffix = `📢 Каждый час ${ClusterSuffix[cluster]}`;
+  text = `${text}\n\n${suffix}`;
   entities.push({
     _: "textEntity",
     offset: text.indexOf(suffix),

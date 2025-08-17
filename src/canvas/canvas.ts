@@ -282,53 +282,54 @@ export function clearPhotoDir() {
 }
 
 if (config.renderDebug) {
-renderPostImage({
-  cluster: Cluster.Технологии,
-  summary: [
-    {
-      emoji: "🇵🇱",
-      summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
-    },
-    {
-      emoji: "🏛",
-      summary_short:
-        "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
-    },
-    {
-      emoji: "🔒",
-      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
-    },
-    {
-      emoji: "🤝",
-      summary_short:
-        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
-    },
-    {
-      emoji: "🇺🇳",
-      summary_short:
-        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
-    },
-    {
-      emoji: "🔒",
-      summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
-    },
-    {
-      emoji: "🤝",
-      summary_short:
-        "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
-    },
-    {
-      emoji: "🇺🇳",
-      summary_short:
-        "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
-    },
-  ],
-  toDate: new Date(),
-  fromDate: new Date(),
-})
-  .then((imageBuffer) => fs.promises.writeFile(`./techno.png`, imageBuffer))
-  .then(
-    (result) => console.log("Successfully wrote image"),
-    (reason) => console.error("Error", reason)
-  );
+  const imagePath = path.join(rootDir, `./techno.png`);
+  renderPostImage({
+    cluster: Cluster.Технологии,
+    summary: [
+      {
+        emoji: "🇵🇱",
+        summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
+      },
+      {
+        emoji: "🏛",
+        summary_short:
+          "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
+      },
+      {
+        emoji: "🔒",
+        summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+      },
+      {
+        emoji: "🤝",
+        summary_short:
+          "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+      },
+      {
+        emoji: "🇺🇳",
+        summary_short:
+          "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+      },
+      {
+        emoji: "🔒",
+        summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+      },
+      {
+        emoji: "🤝",
+        summary_short:
+          "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+      },
+      {
+        emoji: "🇺🇳",
+        summary_short:
+          "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+      },
+    ],
+    toDate: new Date(),
+    fromDate: new Date(),
+  })
+    .then((imageBuffer) => fs.promises.writeFile(imagePath, imageBuffer))
+    .then(
+      (result) => console.log(`Successfully wrote image: ${imagePath}`),
+      (reason) => console.error("Error", reason)
+    );
 }
