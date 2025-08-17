@@ -157,6 +157,9 @@ function splitLine(
     lastLine = lastLine.substring(lastSpace + 1);
     lineNumber++;
   }
+  if (lastLine.length > splitLength) {
+    lastLine = lastLine.substring(0, splitLength - 3) + "...";
+  }
   result.push(lastLine);
 
   return result;
@@ -178,7 +181,7 @@ function drawSummary(
   ctx.fillStyle = "#1d1d1dff";
   ctx.font = "500 30px Inter";
 
-  let splitLength = 44;
+  let splitLength = 48;
   let maxLines = 2;
   if (summary.length > 5) {
     startY = 335;
