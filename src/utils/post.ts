@@ -14,7 +14,10 @@ import {
   textEntityTypeTextUrl,
   textEntityTypeUrl,
 } from "tdlib-types";
-import { ClusterName } from "../ai/prompts/allInOne";
+import { ClusterName, ClusterSummary } from "../ai/prompts/allInOne";
+import path from "path";
+import fs from "fs";
+import { logger } from "./logger";
 
 export type Post = {
   id: number;
@@ -154,4 +157,38 @@ export function appendClusterPostSuffix(
     },
   });
   return text;
+}
+
+const historyDir = path.join(
+  path.dirname(require.main?.filename ?? __filename),
+  "../db"
+);
+const historyFile = path.join(historyDir, "history.json");
+
+export type ClusterHistory = {
+  topic: ClusterName;
+  news: Array<string>;
+};
+
+export function saveClusterHistory(summaryClusters: ClusterSummary) {
+  if (!fs.existsSync(historyDir)) {
+    fs.mkdirSync(historyDir, { recursive: true });
+  }
+  const history: Array<ClusterHistory> = Object.entries(summaryClusters).map(([cluster, summary]) => ({
+    topic: cluster as ClusterName,
+    news: summary.map((s) => s.summary_detailed),
+  }));
+  fs.writeFileSync(historyFile, JSON.stringify(history));
+}
+
+export function loadClusterHistory(): Array<ClusterHistory> {
+  try {
+    const file = fs.readFileSync(historyFile);
+    if (file.length) {
+      return JSON.parse(file.toString());
+    }
+  } catch (error) {
+    logger.error("Could not load history file", error);
+  }
+  return [];
 }

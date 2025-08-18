@@ -36,7 +36,11 @@ import {
   writePhotoFile,
 } from "../canvas/canvas";
 import { mapCluster } from "../utils/mappers";
-import { appendClusterPostSuffix } from "../utils/post";
+import {
+  appendClusterPostSuffix,
+  loadClusterHistory,
+  saveClusterHistory,
+} from "../utils/post";
 
 export const postAllInOneSummary = async (
   force?: boolean,
@@ -100,11 +104,17 @@ export const postAllInOneSummary = async (
       })
     ).then((result) => result.flat());
 
+    const clusterHistory = loadClusterHistory();
+
     let aiAnswer = await askAI(
       allInOnePrompt(maxCountOfNews),
-      JSON.stringify(
-        messages.map((message) => ({ id: message.id, text: message.text }))
-      ),
+      JSON.stringify({
+        other_posts: messages.map((message) => ({
+          id: message.id,
+          text: message.text,
+        })),
+        our_posts: clusterHistory,
+      }),
       !force
     );
 
@@ -119,6 +129,8 @@ export const postAllInOneSummary = async (
     let summaryClusters: ClusterSummary = parseJsonAnswer(aiAnswer);
     clearVoiceDir();
     clearPhotoDir();
+
+    saveClusterHistory(summaryClusters);
 
     const keys = Object.keys(summaryClusters) as ClusterName[];
     for (let k = 0; k < keys.length; k++) {
