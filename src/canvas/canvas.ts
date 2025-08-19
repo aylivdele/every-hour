@@ -53,7 +53,7 @@ function loadEmojis(emojis: string[]): Promise<Emojis> {
     emojis.map((emoji) => {
       const unicode = emojiUnicode(emoji).replaceAll(" ", "-").toUpperCase();
       const data = emojiData.find(
-        (e) => (e.non_qualified ?? e.unified) === unicode
+        (e) => e.non_qualified === unicode || e.unified === unicode
       );
       const imageName = data?.image ?? `${unicode.toLowerCase()}.png`;
       const emojiPath = path.join(imagesDir, "apple-emoji", imageName);
@@ -70,7 +70,10 @@ function loadEmojis(emojis: string[]): Promise<Emojis> {
 function chooseBackgroundWidth({
   summary,
 }: Omit<RenderPostImageProps, "fromDate" | "toDate" | "cluster">) {
-  return 1100;
+  if (summary.length > 5) {
+    return 'big'
+  }
+  return 'medium';
 
   const longestText = summary.reduce(
     (max, info) =>
@@ -115,25 +118,6 @@ function loadBackground({
   console.log("Loading background: " + backgroundDir);
   return loadImage(backgroundDir);
 }
-function drawTitle(
-  ctx: SKRSContext2D,
-  { fromDate, toDate, summary }: Omit<RenderPostImageProps, "cluster" | "id">
-) {
-  const timeY = 200;
-  const X = 94;
-  const mainY = 300;
-
-  ctx.fillStyle = "#1d1d1dff";
-  ctx.font = "40px Unbounded";
-  ctx.fillText(getTimeIntervalString(fromDate, toDate), X, timeY);
-
-  ctx.font = "800 64px Unbounded";
-  ctx.fillText(
-    `Главное за ${getDateTitleIntervalString(fromDate, toDate)}`,
-    X,
-    mainY
-  );
-}
 
 function splitLine(
   line: string,
@@ -165,6 +149,31 @@ function splitLine(
   return result;
 }
 
+function drawTitle(
+  ctx: SKRSContext2D,
+  { fromDate, toDate, summary }: Omit<RenderPostImageProps, "cluster" | "id">
+) {
+  let timeY = 200;
+  const X = 94;
+  let mainY = 300;
+
+  if (summary.length > 5) {
+    timeY = 120;
+    mainY = 220;
+  }
+
+  ctx.fillStyle = "#1d1d1dff";
+  ctx.font = "40px Unbounded";
+  ctx.fillText(getTimeIntervalString(fromDate, toDate), X, timeY);
+
+  ctx.font = "800 64px Unbounded";
+  ctx.fillText(
+    `Главное за ${getDateTitleIntervalString(fromDate, toDate)}`,
+    X,
+    mainY
+  );
+}
+
 function drawSummary(
   ctx: SKRSContext2D,
   summary: RenderPostImageProps["summary"],
@@ -179,19 +188,21 @@ function drawSummary(
   let imageHeight = 42;
 
   ctx.fillStyle = "#1d1d1dff";
-  ctx.font = "500 30px Inter";
+  let textFont = "500 30px Inter";
+  let emojiFont = "36px Inter";
 
   let splitLength = 48;
   let maxLines = 2;
   if (summary.length > 5) {
-    startY = 335;
-    startYemoji = 345;
-    incrementY = 65;
-    lineHeight = 30;
-    imageHeight = 30;
-    ctx.font = "500 24px Inter";
-    splitLength = 60;
-    maxLines = 2;
+    startY = 245;
+    startYemoji = 250;
+    incrementY = 83;
+    lineHeight = 35;
+    imageHeight = 35;
+    textFont = "500 30px Inter";
+    emojiFont = "36px Inter";
+    // splitLength = 60;
+    // maxLines = 2;
   }
 
   for (let i = 0; i < summary.length; i++) {
@@ -206,8 +217,16 @@ function drawSummary(
         imageHeight,
         imageHeight
       );
+    } else {
+      ctx.font = emojiFont;
+      ctx.fillText(
+        summary[i].emoji,
+        xEmoji + 7,
+        startY + 34 + incrementY * i
+      );
     }
 
+    ctx.font = textFont;
     for (let j = 0; j < title.length; j++) {
       ctx.fillText(
         title[j],
@@ -290,11 +309,11 @@ if (config.renderDebug) {
     cluster: Cluster.Технологии,
     summary: [
       {
-        emoji: "🇵🇱",
+        emoji: "₿",
         summary_short: "Польша укрепит армию и защиту восточного фланга НАТО",
       },
       {
-        emoji: "🏛",
+        emoji: "⚕️",
         summary_short:
           "Доверие депутатов к Зеленскому пошатнулось из-за манипуляций при голосовании",
       },
@@ -312,20 +331,20 @@ if (config.renderDebug) {
         summary_short:
           "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
       },
-      {
-        emoji: "🔒",
-        summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
-      },
-      {
-        emoji: "🤝",
-        summary_short:
-          "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
-      },
-      {
-        emoji: "🇺🇳",
-        summary_short:
-          "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
-      },
+      // {
+      //   emoji: "🔒",
+      //   summary_short: "Профессора РЭУ арестовали по обвинению в госизмене",
+      // },
+      // {
+      //   emoji: "🤝",
+      //   summary_short:
+      //     "Кремль опубликовал кадры встречи Путина с спецпредставителем США",
+      // },
+      // {
+      //   emoji: "🇺🇳",
+      //   summary_short:
+      //     "СБ ООН обсуждал украинский конфликт с участием РФ, США и Китая",
+      // },
     ],
     toDate: new Date(),
     fromDate: new Date(),

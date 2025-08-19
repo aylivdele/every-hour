@@ -10,3 +10,5 @@
 
 //@ts-ignore
 import emojiUnicode from "emoji-unicode";
+
+console.log(emojiUnicode("₿"));

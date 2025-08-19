@@ -5,7 +5,7 @@ export function mapCluster(cluster: string) {
     case "Экономика":
       return "экономике";
     case "Крипта":
-      return "крипте";
+      return "крипт+е";
     case "Технологии":
       return "технологиях";
     case "Отношения и психология":

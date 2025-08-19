@@ -43,9 +43,76 @@ function getMonthString(
   return date.toLocaleString("ru", { month: length });
 }
 
-function getDateString(date: Date) {
-  return date.toLocaleString("ru", { day: '2-digit' });
+function ordinalDay(day: number, form: "gen" | "accN"): string {
+  if (day < 1 || day > 31) throw new RangeError("day must be 1..31");
+
+  const ones: Record<number, { gen: string; accN: string }> = {
+    1: { gen: "первого",        accN: "первое" },
+    2: { gen: "второго",        accN: "второе" },
+    3: { gen: "третьего",       accN: "третье" },
+    4: { gen: "четвёртого",     accN: "четвёртое" },
+    5: { gen: "пятого",         accN: "пятое" },
+    6: { gen: "шестого",        accN: "шестое" },
+    7: { gen: "седьмого",       accN: "седьмое" },
+    8: { gen: "восьмого",       accN: "восьмое" },
+    9: { gen: "девятого",       accN: "девятое" },
+  };
+
+  const teens: Record<number, { gen: string; accN: string }> = {
+    10: { gen: "десятого",        accN: "десятое" },
+    11: { gen: "одиннадцатого",   accN: "одиннадцатое" },
+    12: { gen: "двенадцатого",    accN: "двенадцатое" },
+    13: { gen: "тринадцатого",    accN: "тринадцатое" },
+    14: { gen: "четырнадцатого",  accN: "четырнадцатое" },
+    15: { gen: "пятнадцатого",    accN: "пятнадцатое" },
+    16: { gen: "шестнадцатого",   accN: "шестнадцатое" },
+    17: { gen: "семнадцатого",    accN: "семнадцатое" },
+    18: { gen: "восемнадцатого",  accN: "восемнадцатое" },
+    19: { gen: "девятнадцатого",  accN: "девятнадцатое" },
+  };
+
+  const tensWhole: Record<number, { gen: string; accN: string }> = {
+    20: { gen: "двадцатого",  accN: "двадцатое" },
+    30: { gen: "тридцатого",  accN: "тридцатое" },
+  };
+
+  const tensWord: Record<number, string> = {
+    20: "двадцать",
+    30: "тридцать",
+  };
+
+  if (day <= 9) return ones[day][form];
+  if (day >= 10 && day <= 19) return teens[day][form];
+  if (day % 10 === 0) return tensWhole[day][form];
+
+  const t = Math.floor(day / 10) * 10; // 20 или 30
+  const o = day % 10;
+  return `${tensWord[t]} ${ones[o][form]}`;
 }
+
+function monthGenitive(monthIndex: number): string {
+  const months = [
+    "января","февраля","марта","апреля","мая","июня",
+    "июля","августа","сентября","октября","ноября","декабря"
+  ];
+  return months[monthIndex];
+}
+
+export function formatRange(start: Date, end: Date): string {
+  if (end < start) [start, end] = [end, start];
+
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+
+  const startStr = ordinalDay(start.getDate(), "gen");
+  const endStr   = ordinalDay(end.getDate(),   "accN");
+
+  if (sameMonth) {
+    return `с ${startStr} по ${endStr} ${monthGenitive(start.getMonth())}`;
+  } else {
+    return `с ${startStr} ${monthGenitive(start.getMonth())} по ${endStr} ${monthGenitive(end.getMonth())}`;
+  }
+}
+
 
 function getHourString(date: Date) {
   switch (date.getHours().toString()) {
@@ -107,15 +174,7 @@ export function getDateTitleIntervalString(fromDate: Date, toDate: Date) {
 
 export function getLocaleTimeIntervalString(fromDate: Date, toDate: Date) {
   if (toDate.getHours() === 8) {
-    if (fromDate.getMonth() !== toDate.getMonth()) {
-      return `с ${getDateString(fromDate)} ${getMonthString(
-        fromDate, 'long'
-      )} до ${getDateString(toDate)} ${getMonthString(toDate, 'long')}`;
-    }
-    return `с ${fromDate.getDate()} до ${toDate.getDate()} ${getMonthString(
-      toDate,
-      "long"
-    )}`;
+    return formatRange(fromDate, toDate);
   }
   return `с ${getHourString(fromDate)} до ${getHourString(toDate)}`;
 }
