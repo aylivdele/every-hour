@@ -34,7 +34,7 @@ export function askAI(
     .create({
       model: config.networkModel || "gpt-4o-mini",
       input: messages,
-      reasoning: { effort: "high" },
+      reasoning: { effort: "medium" },
     })
     .then((result) => {
       // logger.info('Answer of gpt-4o-mini: %s', JSON.stringify(result))
