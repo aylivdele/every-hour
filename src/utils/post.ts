@@ -174,10 +174,21 @@ export function saveClusterHistory(summaryClusters: ClusterSummary) {
   if (!fs.existsSync(historyDir)) {
     fs.mkdirSync(historyDir, { recursive: true });
   }
-  const history: Array<ClusterHistory> = Object.entries(summaryClusters).map(([cluster, summary]) => ({
-    topic: cluster as ClusterName,
-    news: summary.map((s) => s.summary_detailed),
-  }));
+  const history = loadClusterHistory();
+  for (const [name, summary] of Object.entries(summaryClusters)) {
+    let existingHistory = history.find((h) => h.topic === name);
+    if (!existingHistory) {
+      existingHistory = { topic: name as ClusterName, news: [] };
+      history.push(existingHistory);
+    }
+    if (existingHistory.news.length > 50) {
+      existingHistory.news.splice(
+        0,
+        existingHistory.news.length - 50 + summary.length
+      );
+    }
+    existingHistory.news.push(...summary.map((h) => h.summary_detailed));
+  }
   fs.writeFileSync(historyFile, JSON.stringify(history));
 }
 
