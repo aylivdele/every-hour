@@ -116,9 +116,9 @@ export function formatRange(start: Date, end: Date): string {
 
 function getHourString(date: Date) {
   switch (date.getHours().toString()) {
-    case "08":
+    case "8":
       return "восьми";
-    case "09":
+    case "9":
       return "девяти";
     case "10":
       return "десяти";
