@@ -36,7 +36,7 @@ export type SheduledPost = {
 };
 
 export type PostCluster = {
-  [key: string]: Array<number>;
+  [cluster in ClusterName]: Array<number>;
 };
 
 export type ManagableEntities =

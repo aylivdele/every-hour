@@ -13,7 +13,7 @@ export function mapCluster(cluster: string) {
     case "Наука и космос":
       return "науке и космосе";
     case "AI и нейросети":
-      return "искусственном интелекте и нейросетях";
+      return "искусственном интеллекте и нейросет+ях";
   }
   return '';
 }

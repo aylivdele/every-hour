@@ -126,5 +126,5 @@ export interface Summary {
 }
 
 export type ClusterSummary = {
-  [cluster in ClusterName]: Array<Summary>;
+  [cluster in ClusterName]?: Array<Summary>;
 };
