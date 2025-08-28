@@ -4,14 +4,8 @@ import { config } from "../configuration";
 import fs from "fs";
 import path from "path";
 import { message } from "tdlib-types";
-import {
-  toMskOffset,
-} from "../utils/date";
-import {
-  mapMessageToPost,
-  Post,
-  saveClusterHistory,
-} from "../utils/post";
+import { toMskOffset } from "../utils/date";
+import { mapMessageToPost, Post, saveClusterHistory } from "../utils/post";
 
 import {
   archiveStatistics,
@@ -20,6 +14,7 @@ import {
 } from "../statistics";
 import { getOneByOneSummary } from "./oneByOneSummary";
 import { getAllInOneSummary } from "./allInOneSummary";
+import { prepareAndShedule } from "./sheduledPosts";
 
 export interface Group {
   id: number;
@@ -104,6 +99,14 @@ export const postSummary = async (
 
     saveClusterHistory(clusterSummary);
 
+    prepareAndShedule({
+      summaryClusters: clusterSummary,
+      fromDateSeconds,
+      messages,
+      currentDate,
+      publishDate,
+    });
+
     if (config.debugChatId && !force) {
       await client.invoke({
         _: "sendMessage",
@@ -115,11 +118,12 @@ export const postSummary = async (
             _: "formattedText",
             text: `Собрано ${messages.length} постов;
 
-Результат полного цикла за один запрос(кол-во новостей): ${Object.entries(
+Кол-во новостей по темам:
+${Object.entries(
               clusterSummary
             )
               .map(([cluster, news]) => `${cluster}: ${news.length}`)
-              .join(", ")};
+              .join("\n")};
 
 Запланирована отправка выжимки для ${
               Object.values(clusterSummary).filter((news) => news.length > 0)

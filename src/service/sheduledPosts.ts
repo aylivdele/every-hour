@@ -240,7 +240,7 @@ export async function prepareAndShedule({
             _: "inputMessageText",
             text: {
               _: "formattedText",
-              text: `Ошибка создания выжимки для ${key}: ${error}`,
+              text: `Ошибка оформления поста для ${key}: ${error}`,
             },
           },
         });
