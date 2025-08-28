@@ -90,10 +90,6 @@ dublicates - задача 4: массив с массивами (0 или бол
  • Если новость нельзя отнести ни к одной теме, то помещай ее в массив "notNews", вместо "wrongTopic".
  • Максимальная строгость к фильтрации: лучше меньше, но точнее.`;
 
-export type CheckRequest = {
-  [key: string]: Array<Post>;
-}
-
 export type CheckResult = {
   notNews: Array<number>;
   wrongTopic: Array<number>;

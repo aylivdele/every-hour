@@ -1,40 +1,25 @@
 import { logger } from "../utils/logger";
 import { client } from "..";
 import { config } from "../configuration";
-import { askAI, tts } from "../ai";
 import fs from "fs";
 import path from "path";
-import { message, textEntity$Input } from "tdlib-types";
-import { CheckRequest } from "../ai/prompts";
+import { message } from "tdlib-types";
 import {
-  getDateIntervalString,
-  getNumberString,
   toMskOffset,
 } from "../utils/date";
 import {
-  loadClusterHistory,
   mapMessageToPost,
   Post,
-  PostCluster,
   saveClusterHistory,
-  SheduledPost,
 } from "../utils/post";
-import { parseJsonAnswer } from "../utils/json";
-import { clusterPrompt } from "../ai/prompts/cluster";
-import { dedublicationPrompt } from "../ai/prompts/deduplication";
-import { summaryPrompt } from "../ai/prompts/summary";
-import { ClusterName, ClusterSummary, Summary } from "../ai/prompts/allInOne";
 
 import {
   archiveStatistics,
   logStatistics,
   updateClusterStatistics,
 } from "../statistics";
-import { isEmpty } from "../utils/isEmpty";
-import { instructionsNews } from "../ai/prompts/tts";
-import { clearVoiceDir, writeVoiceFile } from "../utils/voice";
-import { timeout } from "../utils/timeout";
-import { clearPhotoDir } from "../canvas/canvas";
+import { getOneByOneSummary } from "./oneByOneSummary";
+import { getAllInOneSummary } from "./allInOneSummary";
 
 export interface Group {
   id: number;
@@ -105,159 +90,19 @@ export const postSummary = async (
       })
     ).then((result) => result.flat());
 
-    let aiAnswer = await askAI(
-      clusterPrompt,
-      JSON.stringify(
-        messages.map((message) => ({ id: message.id, text: message.text }))
-      ),
-      !force
+    // const clusterSummary = await getAllInOneSummary(
+    //   messages,
+    //   maxCountOfNews,
+    //   force
+    // );
+
+    const clusterSummary = await getOneByOneSummary(
+      messages,
+      maxCountOfNews,
+      force
     );
 
-    logger.info("Clusterization AI answer: %s", aiAnswer);
-    if (!aiAnswer) {
-      throw new Error("Empty answer from ai for clusterization");
-    }
-    let clusters: PostCluster = parseJsonAnswer(aiAnswer);
-    const clustersWithText: CheckRequest = Object.fromEntries(
-      Object.entries(clusters).map((entry) => {
-        const posts = entry[1]
-          .map((id) => messages.find((message) => message.id === id))
-          .filter((message) => !!message);
-        return [entry[0], posts];
-      })
-    );
-    const clusterHistory = loadClusterHistory();
-
-    const deduplicationAnswerRaw = await askAI(
-      dedublicationPrompt,
-      JSON.stringify({
-        posts: clustersWithText,
-        previous_posts: clusterHistory,
-      }),
-      !force
-    );
-
-    logger.info("Deduplication AI answer: %s", deduplicationAnswerRaw);
-    if (!deduplicationAnswerRaw) {
-      throw new Error("Empty answer from ai for dedublication");
-    }
-    const deduplicatedClusters: PostCluster = parseJsonAnswer(
-      deduplicationAnswerRaw
-    );
-
-    const sheduledPosts: Array<SheduledPost> = [];
-
-    fromDateSeconds = fromDateSeconds * 1000 + fiveMinutes;
-    const clusterSummary: ClusterSummary = {};
-
-    for (const key of (Object.keys(deduplicatedClusters)) as ClusterName[]) {
-      try {
-        const targetChatId = config.targetChats[key];
-        if (targetChatId === undefined) {
-          logger.warn('Target chat for "%s" not specified', key);
-          continue;
-        }
-        // removeFromArray(clusters[key], checkResult!.notNews);
-        // for (const dublicate of checkResult!.dublicates) {
-        //   if (dublicate.length > 1) {
-        //     removeFromArray(clusters[key], dublicate.slice(1))
-        //   }
-        // }
-        const posts = messages
-          .filter((msg) => deduplicatedClusters[key].includes(msg.id))
-          .map((message) => ({ id: message.id, text: message.text }));
-        let summaryRaw = null;
-        let success = false;
-        let retries = 0;
-
-        if (posts.length === 0) {
-          continue;
-        }
-
-        while (!success && retries < 5) {
-          if (retries > 0) {
-            logger.info("Retrying summary request in 1 minute");
-            await timeout(60 * 1000);
-          }
-          const { newSuccess, newSummaryRaw } = await askAI(
-            summaryPrompt(maxCountOfNews),
-            JSON.stringify(posts),
-            !force
-          )
-            .then((answer) => ({ newSummaryRaw: answer, newSuccess: true }))
-            .catch(async (reason) => {
-              logger.error("Error on summary ai request", reason);
-              return { newSummaryRaw: null, newSuccess: false };
-            })
-            .finally(() => retries++);
-          success = newSuccess;
-          summaryRaw = newSummaryRaw;
-          logger.info("Summary AI answer: %s", summaryRaw);
-        }
-
-        if (!summaryRaw) {
-          throw new Error("Empty answer from ai for summary");
-        }
-        const summaryArr: Array<Summary> = parseJsonAnswer(summaryRaw).filter(
-          (sum: Summary) =>
-            !isEmpty(sum.summary_detailed) && !isEmpty(sum.summary_short)
-        );
-
-        if (!summaryArr.length) {
-          throw new Error("Empty summary array for cluster " + key);
-        }
-        clusterSummary[key] = summaryArr;
-      } catch (error) {
-        logger.error(`Error for ${key} cluster`, error);
-        if (config.debugChatId) {
-          await client.invoke({
-            _: "sendMessage",
-            chat_id: config.debugChatId,
-            message_thread_id: config.debugThreadId,
-            input_message_content: {
-              _: "inputMessageText",
-              text: {
-                _: "formattedText",
-                text: `Ошибка создания выжимки для ${key}: ${error}`,
-              },
-            },
-          });
-        }
-      }
-    }
-      clearVoiceDir();
-      clearPhotoDir();
-
-      saveClusterHistory(clusterSummary);
-
-    setTimeout(
-      async () => {
-        for (const post of sheduledPosts) {
-          try {
-            logger.info("Sending sheduled post to " + post.targetChatId);
-            await client.invoke({
-              _: "sendMessage",
-              chat_id: post.targetChatId,
-              input_message_content: {
-                _: "inputMessageText",
-                text: {
-                  _: "formattedText",
-                  text: post.text,
-                  entities: post.entities || undefined,
-                },
-              },
-            });
-          } catch (reason) {
-            logger.error(
-              "Could not post sheduled message for %s",
-              post.cluster,
-              reason
-            );
-          }
-        }
-      },
-      force ? 0 : publishDate.getTime() - Date.now()
-    );
+    saveClusterHistory(clusterSummary);
 
     if (config.debugChatId && !force) {
       await client.invoke({
@@ -270,19 +115,16 @@ export const postSummary = async (
             _: "formattedText",
             text: `Собрано ${messages.length} постов;
 
-Результат кластеризации: ${Object.entries(clusters)
-              .map(([cluster, posts]) => `${cluster}: ${posts.length}`)
+Результат полного цикла за один запрос(кол-во новостей): ${Object.entries(
+              clusterSummary
+            )
+              .map(([cluster, news]) => `${cluster}: ${news.length}`)
               .join(", ")};
 
-Результат дедупликации: ${Object.entries(deduplicatedClusters)
-              .map(([cluster, posts]) => `${cluster}: ${posts.length}`)
-              .join(", ")};
-
-Результат выжимки(кол-во новостей): ${Object.entries(clusterSummary)
-              .map(([cluster, posts]) => `${cluster}: ${posts}`)
-              .join(", ")};
-
-Запланирована отправка выжимки для ${sheduledPosts.length} каналов через ${
+Запланирована отправка выжимки для ${
+              Object.values(clusterSummary).filter((news) => news.length > 0)
+                .length
+            } каналов через ${
               (publishDate.getTime() - Date.now()) / 1000
             } секунд.`,
           },
@@ -290,7 +132,14 @@ export const postSummary = async (
       });
     }
     if (!force) {
-      const statistics = updateClusterStatistics(clusterSummary, 1);
+      const statistics = updateClusterStatistics(
+        Object.fromEntries(
+          Object.entries(clusterSummary)
+            .map(([cluster, posts]) => [cluster, posts.length])
+            .filter(([_, length]) => length)
+        ),
+        1
+      );
       if (isLastForToday) {
         await logStatistics(statistics);
         archiveStatistics();

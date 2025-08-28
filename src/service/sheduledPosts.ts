@@ -1,15 +1,28 @@
 import { client } from "..";
 import { tts } from "../ai";
 import { ClusterName, ClusterSummary } from "../ai/prompts/allInOne";
-import { renderPostImage, Cluster, writePhotoFile } from "../canvas/canvas";
+import {
+  renderPostImage,
+  Cluster,
+  writePhotoFile,
+  clearPhotoDir,
+} from "../canvas/canvas";
 import { config } from "../configuration";
 import { addDot } from "../utils/addDot";
-import { getDateTitleIntervalString, getLocaleTimeIntervalString, toMskOffset } from "../utils/date";
+import {
+  getDateTitleIntervalString,
+  getLocaleTimeIntervalString,
+  toMskOffset,
+} from "../utils/date";
 import { logger } from "../utils/logger";
 import { mapCluster } from "../utils/mappers";
 import { appendClusterPostSuffix, Post, SheduledPost } from "../utils/post";
-import { InputMessageContent$Input, message, textEntity$Input } from "tdlib-types";
-import { writeVoiceFile } from "../utils/voice";
+import {
+  InputMessageContent$Input,
+  message,
+  textEntity$Input,
+} from "tdlib-types";
+import { clearVoiceDir, writeVoiceFile } from "../utils/voice";
 
 function sendPhoto(post: SheduledPost): Promise<any> {
   if (!post.photoFile) {
@@ -96,7 +109,7 @@ export function shedulePost(post: SheduledPost) {
   }, post.date - Date.now());
 }
 
-export async function prepareForPosting({
+export async function prepareAndShedule({
   summaryClusters,
   fromDateSeconds,
   messages,
@@ -109,6 +122,8 @@ export async function prepareForPosting({
   currentDate: Date;
   publishDate: Date;
 }) {
+  clearVoiceDir();
+  clearPhotoDir();
   const keys = Object.keys(summaryClusters) as ClusterName[];
   for (let k = 0; k < keys.length; k++) {
     const key: ClusterName = keys[k];
@@ -124,7 +139,7 @@ export async function prepareForPosting({
       }
 
       let fromDate = toMskOffset(
-        new Date(fromDateSeconds * 1000 + fiveMinutes)
+        new Date(fromDateSeconds * 1000 + 1000 * 60 * 5)
       );
 
       let text = summaryArr
