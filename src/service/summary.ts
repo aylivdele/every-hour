@@ -11,6 +11,7 @@ import {
   archiveStatistics,
   logStatistics,
   updateClusterStatistics,
+  Statistics,
 } from "../statistics";
 import { getOneByOneSummary } from "./oneByOneSummary";
 import { getAllInOneSummary } from "./allInOneSummary";
@@ -28,6 +29,8 @@ export const postSummary = async (
   fromDate?: number,
   toDate?: number
 ) => {
+  let statistics: undefined | Statistics = undefined;
+  let isLastForToday = false;
   try {
     logger.info("Managed groups state: %s", JSON.stringify(managedGroups));
 
@@ -41,7 +44,6 @@ export const postSummary = async (
 
     let postInterval = config.postInterval;
     let maxCountOfNews = 5;
-    let isLastForToday = false;
 
     if (!force) {
       if (currentDate.getHours() > 22 || currentDate.getHours() < 8) {
@@ -119,11 +121,9 @@ export const postSummary = async (
             text: `Собрано ${messages.length} постов;
 
 Кол-во новостей по темам:
-${Object.entries(
-              clusterSummary
-            )
-              .map(([cluster, news]) => `${cluster}: ${news.length}`)
-              .join("\n")};
+${Object.entries(clusterSummary)
+  .map(([cluster, news]) => `${cluster}: ${news.length}`)
+  .join("\n")};
 
 Запланирована отправка выжимки для ${
               Object.values(clusterSummary).filter((news) => news.length > 0)
@@ -136,7 +136,7 @@ ${Object.entries(
       });
     }
     if (!force) {
-      const statistics = updateClusterStatistics(
+      statistics = updateClusterStatistics(
         Object.fromEntries(
           Object.entries(clusterSummary)
             .map(([cluster, posts]) => [cluster, posts.length])
@@ -144,10 +144,6 @@ ${Object.entries(
         ),
         1
       );
-      if (isLastForToday) {
-        await logStatistics(statistics);
-        archiveStatistics();
-      }
     }
   } catch (error) {
     logger.error("PostSummary error: ", error);
@@ -166,6 +162,11 @@ ${Object.entries(
       });
     }
     throw error;
+  } finally {
+    if (isLastForToday) {
+      await logStatistics(statistics);
+      archiveStatistics();
+    }
   }
 };
 

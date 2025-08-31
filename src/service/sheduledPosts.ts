@@ -18,8 +18,6 @@ import { logger } from "../utils/logger";
 import { mapCluster } from "../utils/mappers";
 import { appendClusterPostSuffix, Post, SheduledPost } from "../utils/post";
 import {
-  InputMessageContent$Input,
-  message,
   textEntity$Input,
 } from "tdlib-types";
 import { clearVoiceDir, writeVoiceFile } from "../utils/voice";
@@ -31,6 +29,12 @@ function sendPhoto(post: SheduledPost): Promise<any> {
   return client.invoke({
     _: "sendMessage",
     chat_id: post.targetChatId,
+    options: !post.voiceFile
+      ? undefined
+      : {
+          _: "messageSendOptions",
+          disable_notification: true,
+        },
     input_message_content: {
       _: "inputMessagePhoto",
       caption: post.voiceFile
